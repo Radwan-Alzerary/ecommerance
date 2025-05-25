@@ -1,11 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    eslint: {
-      ignoreDuringBuilds: true, // Disables ESLint checks during builds
-  
+  eslint: {
+    ignoreDuringBuilds: true,
   },
   typescript: {
-    // Setting this to true will ignore type errors during build
     ignoreBuildErrors: true,
   },
   
@@ -21,6 +19,12 @@ const nextConfig = {
         },
       ],
     },
+      experimental: {
+    webpackBuildWorker: true,
+    parallelServerBuildTraces: true,
+    parallelServerCompiles: true,
+  },
+
   };
   
   export default nextConfig;

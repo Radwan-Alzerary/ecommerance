@@ -1,3 +1,4 @@
+// components/ProductCard.tsx
 'use client'
 
 import Image from 'next/image'
@@ -6,50 +7,45 @@ import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/contexts/CartContext'
 import { useFavorites } from '@/contexts/FavoritesContext'
-import { Star, StarHalf, ShoppingCart, Eye, Heart } from 'lucide-react'
+import { Star, StarHalf, ShoppingCart, Heart } from 'lucide-react'
 import { Product } from '@/types'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { translations } from '@/utils/translations'
 import { API_URL } from '@/lib/apiUrl'
+import { useInView } from 'react-intersection-observer'
 
-interface ProductCardProps extends Product { }
+interface ProductCardProps extends Product {}
 
-export default function ProductCard({
-  _id,
-  id,
-  name,
-  price,
-  image,
-  rating,
-  category,
-  colors,
-  sizes,
-  description,
-}: ProductCardProps) {
+export default function ProductCard(props: ProductCardProps) {
+  const {
+    _id,
+    id,
+    name,
+    price,
+    image,
+    rating,
+    category,
+    colors,
+    sizes,
+    description,
+  } = props
+
   const { addToCart } = useCart()
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites()
   const { language } = useLanguage()
-
   const t = (key: keyof typeof translations.en) => translations[language][key]
+
   const isFav = isFavorite(_id)
+
+  /* ───── Lazy-render the heavy part only when in view ───── */
+  const { ref, inView } = useInView({ rootMargin: '200px', triggerOnce: true })
 
   const toggleFav = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (isFav) {
       removeFromFavorites(_id)
     } else {
-      addToFavorites({
-        _id,
-        id,
-        name,
-        price,
-        image,
-        rating,
-        category,
-        colors,
-        sizes,
-        description,
-      })
+      addToFavorites(props)
     }
   }
 
@@ -60,37 +56,41 @@ export default function ProductCard({
     return (
       <>
         {Array.from({ length: full }).map((_, i) => (
-          <Star
-            key={i}
-            className="h-4 w-4 text-yellow-400 fill-yellow-400 drop-shadow"
-          />
+          <Star key={i} className="h-4 w-4 text-yellow-400 fill-yellow-400" />
         ))}
-        {half && (
-          <StarHalf className="h-4 w-4 text-yellow-400 fill-yellow-400 drop-shadow" />
-        )}
+        {half && <StarHalf className="h-4 w-4 text-yellow-400 fill-yellow-400" />}
       </>
     )
   }
 
+  /* ───── Skeleton to keep layout stable until card appears ───── */
+  if (!inView) {
+    return (
+      <article
+        ref={ref}
+        className="aspect-square w-full animate-pulse rounded-2xl bg-gray-100 dark:bg-gray-700"
+      />
+    )
+  }
+
+  /* ───── Real card once inView === true ───── */
   return (
     <motion.article
+      ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -6 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="group relative flex  flex-col overflow-hidden rounded-2xl bg-white/90 ring-1 ring-gray-200 shadow-md dark:bg-gray-800/60 dark:ring-white/10"
+      className="group relative flex flex-col overflow-hidden rounded-2xl bg-white/90 ring-1 ring-gray-200 shadow-md dark:bg-gray-800/60 dark:ring-white/10"
     >
-      {/* ─── Thumbnail ─────────────────────────────────────────────── */}
-      <Link
-        href={`/products/${_id}`}
-        className="relative block aspect-square overflow-hidden"
-      >
+      {/* Thumbnail */}
+      <Link href={`/products/${_id}`} className="relative block aspect-square overflow-hidden">
         <Image
           src={API_URL + image?.url}
           alt={name}
           fill
+          loading="lazy"
           sizes="(max-width: 768px) 100vw, 33vw"
-          priority
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
 
@@ -102,7 +102,7 @@ export default function ProductCard({
           </span>
         )}
 
-        {/* Action icons (appear on hover) */}
+        {/* Action icons */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
           {/* Add to cart */}
           <Button
@@ -111,19 +111,7 @@ export default function ProductCard({
             className="h-9 w-9 bg-white/90 backdrop-blur hover:bg-white"
             onClick={(e) => {
               e.preventDefault()
-              addToCart({
-                _id,
-                id,
-                name,
-                price,
-                quantity: 1,
-                image,
-                category,
-                colors,
-                sizes,
-                description,
-                rating,
-              })
+              addToCart({ ...props, quantity: 1 })
             }}
           >
             <ShoppingCart className="h-4 w-4" />
@@ -133,24 +121,21 @@ export default function ProductCard({
           <Button
             variant="ghost"
             size="icon"
-            className={`h-9 w-9 backdrop-blur ${isFav
-                ? 'bg-red-50 hover:bg-red-100 text-red-600'
-                : 'bg-white/90 hover:bg-white'
-              }`}
+            className={`h-9 w-9 backdrop-blur ${
+              isFav ? 'bg-red-50 hover:bg-red-100 text-red-600' : 'bg-white/90 hover:bg-white'
+            }`}
             onClick={toggleFav}
           >
-            <Heart
-              className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`}
-            />
+            <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`} />
           </Button>
         </div>
       </Link>
 
-      {/* ─── Info section ──────────────────────────────────────────── */}
+      {/* Info */}
       <div className="flex grow flex-col p-4">
         <Link href={`/products/${_id}`} className="block mb-1 h-12 overflow-hidden">
           <p className="mb-1 text-xs text-muted-foreground">{category?.name}</p>
-          <h3 className="line-clamp-2 text-base font-semibold text-gray-900 dark:text-white transition-colors duration-300 group-hover:text-primary">
+          <h3 className="line-clamp-2 text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary">
             {name}
           </h3>
         </Link>
@@ -158,12 +143,10 @@ export default function ProductCard({
         <div className="mb-2 flex items-center">{renderStars(rating)}</div>
 
         <div className="mt-auto flex flex-col gap-3">
-          {/* Price */}
           <p className="text-xl font-bold text-primary dark:text-blue-400">
             د.ع {price?.toLocaleString()}
           </p>
 
-          {/* Color dots & quick view */}
           <div className="flex justify-between items-center">
             {/* Color swatches */}
             <div className="flex space-x-1">
@@ -181,14 +164,6 @@ export default function ProductCard({
                 </div>
               )}
             </div>
-
-            {/* Quick view */}
-            {/* <Link href={`/products/${_id}`}>
-              <Button variant="outline" size="sm" className="text-xs">
-                <Eye className="mr-1 h-3 w-3" />
-                {t('view')}
-              </Button>
-            </Link> */}
           </div>
         </div>
       </div>

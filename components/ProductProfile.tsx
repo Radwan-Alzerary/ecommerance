@@ -2,8 +2,8 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
-import { motion } from 'framer-motion'
-import { Star, StarHalf, ShoppingCart, Heart, ChevronRight, ChevronLeft } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion' // Added AnimatePresence
+import { Star, StarHalf, ShoppingCart, Heart, ChevronRight, ChevronLeft, Check, Loader2 } from 'lucide-react' // Added Check, Loader2
 import { Button } from '@/components/ui/button'
 import { useCart } from '../contexts/CartContext'
 import { Product } from '../types'
@@ -13,11 +13,62 @@ import Link from 'next/link'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import { Navigation, Pagination, Keyboard } from 'swiper/modules'
 import { useLanguage } from '../contexts/LanguageContext'
-import { translations } from '../utils/translations'
+// import { translations } from '../utils/translations' // Assuming this is your translations file
 
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
+
+// Minimal translations object for demonstration, including new keys
+// In a real app, this would likely be in a separate file (e.g., ../utils/translations)
+const translations = {
+  en: {
+    home: 'Home',
+    products: 'Products',
+    inStock: 'In Stock',
+    color: 'Color',
+    size: 'Size',
+    quantity: 'Quantity',
+    addToCart: 'Add to Cart',
+    description: 'Description',
+    specifications: 'Specifications',
+    shipping: 'Shipping',
+    brand: 'Brand',
+    material: 'Material',
+    premiumQuality: 'Premium Quality',
+    warranty: 'Warranty',
+    oneYear: '1 Year',
+    freeShippingOver50: 'Free shipping on orders over د.ع50.',
+    estimatedDelivery: 'Estimated delivery: 2-5 business days.',
+    youMightAlsoLike: 'You Might Also Like',
+    adding: 'Adding...',
+    addedToCart: 'Added!',
+  },
+  ar: {
+    home: 'الرئيسية',
+    products: 'المنتجات',
+    inStock: 'متوفر بالمخزون',
+    color: 'اللون',
+    size: 'الحجم',
+    quantity: 'الكمية',
+    addToCart: 'أضف إلى السلة',
+    description: 'الوصف',
+    specifications: 'المواصفات',
+    shipping: 'الشحن',
+    brand: 'العلامة التجارية',
+    material: 'الخامة',
+    premiumQuality: 'جودة عالية',
+    warranty: 'الضمان',
+    oneYear: 'سنة واحدة',
+    freeShippingOver50: 'شحن مجاني للطلبات التي تزيد عن ٥٠ د.ع.',
+    estimatedDelivery: 'التوصيل المتوقع: ٢-٥ أيام عمل.',
+    youMightAlsoLike: 'قد يعجبك ايضاَ',
+    adding: 'جاري الإضافة...',
+    addedToCart: 'تمت الإضافة!',
+  },
+  // Add other languages as needed
+};
+
 
 interface ProductProfileProps {
   product: Product
@@ -30,7 +81,14 @@ export default function ProductProfile({ product }: ProductProfileProps) {
   const [isWishlisted, setIsWishlisted] = useState(false)
   const { addToCart } = useCart()
   const { language } = useLanguage()
-  const t = (key: keyof typeof translations.en) => translations[language][key]
+  
+  // Updated t function to use the local translations object for this example
+  const t = (key: keyof typeof translations.en) => {
+    const lang = language as keyof typeof translations;
+    return translations[lang]?.[key] || translations.en[key];
+  }
+
+  const [cartButtonStatus, setCartButtonStatus] = useState<'idle' | 'loading' | 'success'>('idle')
 
   const renderStars = (rating: number) => {
     const stars = []
@@ -50,6 +108,22 @@ export default function ProductProfile({ product }: ProductProfileProps) {
 
   // Assuming product.images is an array of image URLs
   const productImages = [product.image, ...Array(3).fill('/placeholder.svg')]
+
+
+  const handleAddToCart = () => {
+    if (cartButtonStatus !== 'idle') return; // Prevent multiple clicks
+
+    setCartButtonStatus('loading');
+    
+    // Simulate adding to cart
+    setTimeout(() => {
+      addToCart({ ...product, quantity, selectedColor, selectedSize });
+      setCartButtonStatus('success');
+      setTimeout(() => {
+        setCartButtonStatus('idle');
+      }, 1500); // Show success message for 1.5s
+    }, 700); // Simulate loading for 0.7s
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -180,19 +254,57 @@ export default function ProductProfile({ product }: ProductProfileProps) {
 
             <div className="flex gap-4">
               <Button 
-                onClick={() => addToCart({ ...product, quantity, selectedColor, selectedSize })}
+                onClick={handleAddToCart}
                 size="lg"
-                className="flex-1 text-lg h-14"
+                className="flex-1 text-lg h-14 relative overflow-hidden" // Added relative and overflow-hidden
+                disabled={cartButtonStatus !== 'idle'} // Disable button when not idle
               >
-                <ShoppingCart className="mr-2 h-5 w-5" /> {t('addToCart')}
+                <AnimatePresence mode="wait">
+                  {cartButtonStatus === 'idle' && (
+                    <motion.span
+                      key="idle"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center justify-center w-full"
+                    >
+                      <ShoppingCart className="mr-2 h-5 w-5" /> {t('addToCart')}
+                    </motion.span>
+                  )}
+                  {cartButtonStatus === 'loading' && (
+                    <motion.span
+                      key="loading"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center justify-center w-full"
+                    >
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t('adding')}
+                    </motion.span>
+                  )}
+                  {cartButtonStatus === 'success' && (
+                    <motion.span
+                      key="success"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center justify-center w-full text-green-500"
+                    >
+                      <Check className="mr-2 h-5 w-5" /> {t('addedToCart')}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Button>
               <Button
                 variant="outline"
                 size="lg"
                 onClick={() => setIsWishlisted(!isWishlisted)}
-                className={`h-14 w-14 p-0 ${isWishlisted ? 'bg-red-50 border-red-200' : ''}`}
+                className={`h-14 w-14 p-0 transition-colors ${isWishlisted ? 'bg-red-50 border-red-200 hover:bg-red-100' : 'hover:bg-gray-100'}`}
               >
-                <Heart className={`h-6 w-6 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
+                <Heart className={`h-6 w-6 transition-all ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-700'}`} />
               </Button>
             </div>
           </div>
@@ -205,15 +317,15 @@ export default function ProductProfile({ product }: ProductProfileProps) {
             </TabsList>
             <TabsContent value="description" className="mt-6">
             <div
-  className="text-gray-600 leading-relaxed"
-  dangerouslySetInnerHTML={{ __html: product.description }}
-/>
+              className="text-gray-600 leading-relaxed prose" // Added prose for better default styling of HTML
+              dangerouslySetInnerHTML={{ __html: product.description }}
+            />
             </TabsContent>
             <TabsContent value="specifications" className="mt-6">
               <div className="space-y-4">
                 <div className="flex border-b pb-2">
                   <span className="font-medium w-1/3">{t('brand')}</span>
-                  <span className="text-gray-600">ModernShop</span>
+                  <span className="text-gray-600">Oro Eshop</span>
                 </div>
                 <div className="flex border-b pb-2">
                   <span className="font-medium w-1/3">{t('material')}</span>
@@ -242,4 +354,3 @@ export default function ProductProfile({ product }: ProductProfileProps) {
     </div>
   )
 }
-

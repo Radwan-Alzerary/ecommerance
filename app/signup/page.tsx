@@ -5,77 +5,72 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Button } from '@/components/ui/button' // Assuming Shadcn/ui
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle, CheckCircle } from 'lucide-react'
-import { signUpUser } from '@/lib/api'; // Import the API function
+import { signUpUser } from '@/lib/api'
 
 export default function SignUpPage() {
-  // --- State Variables ---
+  // --- متغيرات الحالة ---
   const [name, setName] = useState('')
-  const [identifier, setIdentifier] = useState(''); // Single field for email/phone
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
-  const [success, setSuccess] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  // --- Hooks ---
-  const router = useRouter();
+  // --- هوك التنقل ---
+  const router = useRouter()
 
-  // --- Form Submission Handler ---
+  // --- دالة إرسال النموذج ---
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
+    e.preventDefault()
+    setError('')
+    setSuccess('')
 
-    // --- Client-Side Validation ---
+    // التحقق من تطابق كلمات المرور
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
+      setError('كلمات المرور غير متطابقة.')
+      return
     }
+    // التحقق من طول كلمة المرور
     if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
+      setError('يجب ألا تقل كلمة المرور عن 6 أحرف.')
+      return
     }
+    // التحقق من حقل البريد أو الهاتف
     if (!identifier.trim()) {
-        setError("Email or Phone Number cannot be empty.");
-        return;
+      setError('حقل البريد الإلكتروني أو رقم الهاتف لا يمكن أن يكون فارغاً.')
+      return
     }
 
-    // --- Start API Call ---
-    setIsLoading(true);
+    setIsLoading(true)
 
     try {
-      const userData = { name, identifier, password };
-      const result = await signUpUser(userData); // Call API function
+      const userData = { name, identifier, password }
+      const result = await signUpUser(userData)
 
-      // --- Handle Success ---
-      console.log('Sign up successful:', result);
-      setSuccess('Account created successfully! Redirecting to sign in...');
-      setName('');
-      setIdentifier('');
-      setPassword('');
-      setConfirmPassword('');
+      console.log('تم إنشاء الحساب بنجاح:', result)
+      setSuccess('تم إنشاء الحساب بنجاح! سيتم الانتقال إلى صفحة تسجيل الدخول...')
+      setName('')
+      setIdentifier('')
+      setPassword('')
+      setConfirmPassword('')
 
       setTimeout(() => {
-           router.push('/signin'); // Redirect on success
-      }, 2500);
-
+        router.push('/signin')
+      }, 2500)
     } catch (err: any) {
-      // --- Handle Error ---
-      console.error('Sign up failed:', err);
-      // Display the error message from the API (rethrown by lib/api.ts)
-      setError(err.message || 'An unexpected error occurred.');
+      console.error('فشل إنشاء الحساب:', err)
+      setError(err.message || 'حدث خطأ غير متوقع.')
     } finally {
-      // --- End API Call ---
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
-  // --- Render JSX ---
   return (
     <div className="container mx-auto px-4 py-16">
       <motion.div
@@ -84,54 +79,98 @@ export default function SignUpPage() {
         transition={{ duration: 0.5 }}
         className="max-w-md mx-auto bg-card p-6 md:p-8 rounded-lg shadow-md"
       >
-        <h1 className="text-3xl font-bold text-center mb-8">Create Account</h1>
+        <h1 className="text-3xl font-bold text-center mb-8">إنشاء حساب</h1>
 
-        {/* Error Alert */}
-        {error && ( <Alert variant="destructive" className="mb-6"><AlertCircle className="h-4 w-4" /><AlertTitle>Sign Up Failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>)}
-        {/* Success Alert */}
-        {success && (<Alert variant="success" className="mb-6 bg-green-100 border-green-400 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-300"><CheckCircle className="h-4 w-4" /><AlertTitle>Success</AlertTitle><AlertDescription>{success}</AlertDescription></Alert>)}
+        {/* عرض الأخطاء */}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>فشل التسجيل</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        {/* عرض النجاح */}
+        {success && (
+          <Alert variant="success" className="mb-6 bg-green-100 border-green-400 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-300">
+            <CheckCircle className="h-4 w-4" />
+            <AlertTitle>تم بنجاح</AlertTitle>
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
 
-        {/* Sign Up Form */}
+        {/* نموذج التسجيل */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Name Field */}
+          {/* حقل الاسم الكامل */}
           <div>
-            <Label htmlFor="name">Full Name</Label>
-            <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} required placeholder="Your Full Name" disabled={isLoading || !!success} />
+            <Label htmlFor="name">الاسم الكامل</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+              placeholder="أدخل اسمك الكامل"
+              disabled={isLoading || !!success}
+            />
           </div>
 
-          {/* Combined Identifier Field */}
+          {/* حقل البريد أو الهاتف */}
           <div>
-            <Label htmlFor="identifier">Email or Phone Number</Label>
-            <Input id="identifier" type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required placeholder="you@example.com or 123-456-7890" disabled={isLoading || !!success} />
-             <p className="text-xs text-muted-foreground mt-1">We'll use this to sign you in.</p>
+            <Label htmlFor="identifier">البريد الإلكتروني أو رقم الهاتف</Label>
+            <Input
+              id="identifier"
+              type="text"
+              value={identifier}
+              onChange={e => setIdentifier(e.target.value)}
+              required
+              placeholder="0770000000 ,email@gmail.com"
+              disabled={isLoading || !!success}
+            />
           </div>
 
-          {/* Password Field */}
+          {/* حقل كلمة المرور */}
           <div>
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} placeholder="Minimum 6 characters" disabled={isLoading || !!success} />
+            <Label htmlFor="password">كلمة المرور</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={6}
+              placeholder="لا تقل عن 6 أحرف"
+              disabled={isLoading || !!success}
+            />
           </div>
 
-          {/* Confirm Password Field */}
+          {/* حقل تأكيد كلمة المرور */}
           <div>
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
-            <Input id="confirmPassword" type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required placeholder="Re-enter your password" disabled={isLoading || !!success} />
+            <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              required
+              placeholder="أعد إدخال كلمة المرور"
+              disabled={isLoading || !!success}
+            />
           </div>
 
-          {/* Submit Button */}
+          {/* زر الإرسال */}
           <Button type="submit" className="w-full" disabled={isLoading || !!success}>
-             {isLoading ? 'Creating Account...' : 'Sign Up'}
+            {isLoading ? 'جارٍ إنشاء الحساب...' : 'إنشاء حساب'}
           </Button>
         </form>
 
-        {/* Link to Sign In */}
+        {/* رابط تسجيل الدخول */}
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{' '}
+          لديك حساب بالفعل؟{' '}
           <Link href="/signin" className="font-medium text-primary hover:underline">
-            Sign in instead
+            تسجيل الدخول
           </Link>
         </p>
       </motion.div>
     </div>
-  );
+  )
 }

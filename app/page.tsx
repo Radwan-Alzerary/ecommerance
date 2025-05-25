@@ -37,7 +37,7 @@ export default function Home() {
               key={category._id}
               name={category.name}
               _id={category._id}
-              image={API_URL +category.image?.url || '/default.jpg'}
+              image={API_URL + category.image?.url || '/default.jpg'}
             />
           ))}
         </div>

@@ -71,7 +71,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
       <div className="mb-6 flex flex-col md:flex-row gap-4">
         <Input
           type="text"
-          placeholder="Search products..."
+          placeholder="البحث عن منتج"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="flex-grow"
@@ -169,7 +169,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
             </Button>
           </div>
           <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}

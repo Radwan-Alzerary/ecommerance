@@ -65,10 +65,10 @@ export default function Header() {
         console.error("Error fetching categories:", error);
       }
     };
-  
+
     fetchData();
   }, []);
-  
+
   useEffect(() => {
     if (searchQuery.length > 2) {
       // Filter dummy products for search suggestions
@@ -93,33 +93,12 @@ export default function Header() {
   return (
     <header className="sticky top-0 bg-white dark:bg-gray-800 shadow-md z-50">
       <div className="container mx-auto px-4">
-        {/* Top bar */}
-        <div className="py-2 text-sm border-b dark:border-gray-700 hidden md:block">
-          <div className="flex justify-between items-center">
-            <p className="text-gray-600 dark:text-gray-400"></p>
-            <div className="flex items-center space-x-4">
-              <Link href="/track-order" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
-                {t('trackOrder')}
-              </Link>
-              <Link href="/contact" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
-                {t('contact')}
-              </Link>
-              <Button variant="ghost" size="sm" onClick={toggleLanguage}>
-                <Globe className="h-4 w-4 ml-2" />
-                {language === 'en' ? 'العربية' : 'English'}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={toggleTheme}>
-                {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              </Button>
-            </div>
-          </div>
-        </div>
 
         {/* Main header */}
         <div className="py-4 flex items-center justify-between">
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
+          <div className="flex items-end w-1/3">
+            <Button
+              variant="ghost"
               size="icon"
               className="md:hidden ml-2"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -132,7 +111,7 @@ export default function Header() {
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className="hidden md:flex items-center justify-center gap-8 w-1/3 ">
             <Link href="/products" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
               {t('products')}
             </Link>
@@ -159,10 +138,10 @@ export default function Header() {
           </nav>
 
           {/* Actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center w-1/3 justify-end">
             <div className="relative">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
               >
@@ -206,6 +185,14 @@ export default function Header() {
                 )}
               </AnimatePresence>
             </div>
+            <Button variant="ghost" size="sm" onClick={toggleLanguage}>
+              <Globe className="h-4 w-4 ml-2" />
+              {language === 'en' ? 'العربية' : 'English'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={toggleTheme}>
+              {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
+
             <Link href="/favorites">
               <Button variant="ghost" size="icon" className="relative">
                 <Heart className="h-5 w-5" />
@@ -234,8 +221,8 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
             <div className="relative">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={() => setIsCartOpen(!isCartOpen)}
               >
@@ -253,7 +240,8 @@ export default function Header() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.2 }}
-                    className="absolute right-0 mt-2 z-50"
+                    className={`absolute mt-2 z-50 ${language === "en" ? "right-0" : "left-0"
+                      }`}
                   >
                     <MiniCart onClose={() => setIsCartOpen(false)} />
                   </motion.div>
@@ -270,13 +258,13 @@ export default function Header() {
           <motion.div
             initial={{ x: language === 'en' ? '-100%' : '100%' }}
             animate={{ x: 0 }}
-            exit={{ x: language=== 'en' ? '-100%' : '100%' }}
+            exit={{ x: language === 'en' ? '-100%' : '100%' }}
             className="fixed inset-0 bg-white dark:bg-gray-800 z-50"
           >
             <div className="flex justify-between items-center p-4 border-b dark:border-gray-700">
               <span className="text-xl font-bold">{t('categories')}</span>
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -285,56 +273,50 @@ export default function Header() {
             </div>
             <nav className="p-4">
               <div className="space-y-4">
-                <Link 
-                  href="/products" 
+                <Link
+                  href="/products"
                   className="block text-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {t('products')}
                 </Link>
-                <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400">{t('categories')}</h3>
-                  {categories.map((category) => (
-                    <Link
-                      key={category}
-                      href={`/categories/${category}`}
-                      className="block text-lg pr-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {t(category.toLowerCase() as TranslationKey)}
-                    </Link>
-                  ))}
-                </div>
-                <Link 
-                  href="/deals" 
+                <Link
+                  href="/categories/getall"
+                  className="block text-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {t('categories')}
+                </Link>
+                <Link
+                  href="/deals"
                   className="block text-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {t('deals')}
                 </Link>
-                <Link 
-                  href="/new-arrivals" 
+                <Link
+                  href="/new-arrivals"
                   className="block text-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {t('newArrivals')}
                 </Link>
-                <Link 
-                  href="/profile" 
+                <Link
+                  href="/profile"
                   className="block text-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {t('profile')}
                 </Link>
-                <Link 
-                  href="/signin" 
+                <Link
+                  href="/signin"
                   className="block text-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   {t('signIn')}
                 </Link>
-                <Link 
-                  href="/signup" 
+                <Link
+                  href="/signup"
                   className="block text-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >

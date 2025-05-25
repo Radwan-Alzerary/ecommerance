@@ -1,10 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { Product } from '../types';
+import { Product } from '../types'; // Ensure Product has _id: string
 
 // Define the structure of a cart item
-export interface CartItem extends Product {
+export interface CartItem extends Product { // Ensure Product (and thus CartItem) has _id
   quantity: number;
   selectedColor?: string;
   selectedSize?: string;
@@ -19,7 +19,7 @@ interface CartState {
 type CartAction =
   | { type: 'SET_CART'; payload: CartItem[] }
   | { type: 'ADD_TO_CART'; payload: CartItem }
-  | { type: 'REMOVE_FROM_CART'; payload: string }
+  | { type: 'REMOVE_FROM_CART'; payload: string } // payload is _id
   | { type: 'UPDATE_QUANTITY'; payload: { _id: string; quantity: number } }
   | { type: 'CLEAR_CART' };
 
@@ -43,10 +43,9 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
 
     case 'ADD_TO_CART': {
       const existingIndex = state.items.findIndex(
-        (item) => item._id === action.payload._id
+        (item) => item._id === action.payload._id // Assumes _id exists on CartItem
       );
       if (existingIndex !== -1) {
-        // Item already exists; increment its quantity
         const updatedItems = [...state.items];
         updatedItems[existingIndex] = {
           ...updatedItems[existingIndex],
@@ -55,16 +54,24 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         };
         return { items: updatedItems };
       }
-      // Otherwise, add it as a new item
       return { items: [...state.items, action.payload] };
     }
 
     case 'REMOVE_FROM_CART':
       return {
-        items: state.items.filter((item) => item._id !== action.payload),
+        items: state.items.filter((item) => item._id !== action.payload), // action.payload is the _id
       };
 
     case 'UPDATE_QUANTITY':
+      // This case now assumes quantity will always be > 0 because
+      // the updateQuantity context function handles the <= 0 case by dispatching REMOVE_FROM_CART.
+      // If an item with quantity 0 *should* remain, this reducer would need to handle it.
+      // But typically, quantity 0 means removal.
+      if (action.payload.quantity <= 0) { // Defensive check, though updateQuantity should prevent this
+        return {
+          items: state.items.filter((item) => item._id !== action.payload._id),
+        };
+      }
       return {
         items: state.items.map((item) =>
           item._id === action.payload._id
@@ -81,28 +88,30 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
   }
 };
 
-/**
- * Initializes the cart state from localStorage on the client
- * to avoid a "flash" of empty cart before hydration.
- */
 function initCartState(initialState: CartState): CartState {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem('cart');
     if (saved) {
-      return { items: JSON.parse(saved) };
+      try {
+        const parsedItems = JSON.parse(saved);
+        // Basic validation to ensure parsedItems is an array
+        if (Array.isArray(parsedItems)) {
+          return { items: parsedItems };
+        }
+      } catch (e) {
+        console.error("Failed to parse cart from localStorage", e);
+        // Fallback to initial state if parsing fails
+      }
     }
   }
   return initialState;
 }
 
-// CartProvider component
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  // Use the third argument to useReducer for lazy init from localStorage
   const [state, dispatch] = useReducer(cartReducer, { items: [] }, initCartState);
 
-  // Keep localStorage in sync whenever the cart changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(state.items));
   }, [state.items]);
@@ -116,7 +125,12 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const updateQuantity = (_id: string, quantity: number) => {
-    dispatch({ type: 'UPDATE_QUANTITY', payload: { _id, quantity } });
+    if (quantity <= 0) {
+      // If desired quantity is 0 or less, remove the item from the cart
+      dispatch({ type: 'REMOVE_FROM_CART', payload: _id });
+    } else {
+      dispatch({ type: 'UPDATE_QUANTITY', payload: { _id, quantity } });
+    }
   };
 
   const clearCart = () => {
@@ -138,7 +152,6 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-// Custom hook to use the cart context
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {

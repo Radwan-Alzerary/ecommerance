@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { useCart } from '../contexts/CartContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { translations, TranslationKey } from '../utils/translations'
-import { CartItem } from '../types'
+import { CartItem } from '../types' // Assuming this CartItem has _id from Product
 import { API_URL } from '@/lib/apiUrl'
 
 interface MiniCartProps {
@@ -33,7 +33,7 @@ export default function MiniCart({ onClose }: MiniCartProps) {
       </div>
     )
   }
-console.log(cart)
+  // console.log(cart) // This is useful for debugging item structure (id vs _id)
   return (
     <div className="w-96 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border dark:border-gray-700">
       <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
@@ -45,9 +45,9 @@ console.log(cart)
         )}
       </div>
       <div className="max-h-96 overflow-auto">
-        {cart.map((item: CartItem) => (
+        {cart.map((item: CartItem) => ( // item should have ._id from Product type
           <motion.div
-            key={item.id}
+            key={item._id} // It's often good practice to use the same ID for keys as for operations, assuming _id is stable and unique
             layout
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -63,7 +63,8 @@ console.log(cart)
               />
             </div>
             <div className="ml-4 flex-1">
-              <Link href={`/products/${item.id}`} className="font-medium hover:text-blue-600 dark:hover:text-blue-400">
+              {/* Assuming item.id is used for navigation links, keep as is if different from _id */}
+              <Link href={`/products/${item.id || item._id}`} className="font-medium hover:text-blue-600 dark:hover:text-blue-400">
                 {item.name}
               </Link>
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -76,7 +77,9 @@ console.log(cart)
                     variant="outline"
                     size="icon"
                     className="h-6 w-6"
-                    onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1))}
+                    // Pass item._id and the decremented quantity.
+                    // The context will handle removal if quantity becomes 0.
+                    onClick={() => updateQuantity(item._id, item.quantity - 1)}
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
@@ -85,18 +88,23 @@ console.log(cart)
                     variant="outline"
                     size="icon"
                     className="h-6 w-6"
-                    onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                    onClick={() => updateQuantity(item._id, item.quantity + 1)}
                   >
                     <Plus className="h-3 w-3" />
                   </Button>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">${(item.price * item.quantity).toFixed(2)}</div>
+                  <div className="font-medium">
+                    {((item.price * item.quantity)).toLocaleString('en-US', {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0
+                    })}د.ع
+                  </div>
                   <button
-                    onClick={() => removeFromCart(item.id)}
+                    onClick={() => removeFromCart(item._id)} // Use item._id
                     className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                   >
-                    {/* {t('remove')} */}
+                    {t('remove')}
                   </button>
                 </div>
               </div>
@@ -107,7 +115,7 @@ console.log(cart)
       <div className="p-4 border-t dark:border-gray-700">
         <div className="flex justify-between mb-4">
           <span className="font-medium">{t('total')}</span>
-          <span className="font-bold">${total.toFixed(2)}</span>
+          <span className="font-bold">{total.toLocaleString('en-US', {minimumFractionDigits: 0,maximumFractionDigits: 0})}د.ع</span>
         </div>
         <div className="space-y-2">
           <Button className="w-full" asChild>
@@ -121,4 +129,3 @@ console.log(cart)
     </div>
   )
 }
-

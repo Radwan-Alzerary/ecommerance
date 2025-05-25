@@ -12,112 +12,186 @@ import { useLanguage } from '@/contexts/LanguageContext'
 import { translations } from '@/utils/translations'
 import { API_URL } from '@/lib/apiUrl'
 
-interface ProductCardProps extends Product {}
+interface ProductCardProps extends Product { }
 
-export default function ProductCard({_id, id, name, price, image, rating, category, colors, sizes, description }: ProductCardProps) {
+export default function ProductCard({
+  _id,
+  id,
+  name,
+  price,
+  image,
+  rating,
+  category,
+  colors,
+  sizes,
+  description,
+}: ProductCardProps) {
   const { addToCart } = useCart()
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites()
   const { language } = useLanguage()
+
   const t = (key: keyof typeof translations.en) => translations[language][key]
-  const isProductFavorite = isFavorite(_id)
-  // console.log(category)
-  const handleFavoriteClick = () => {
-    if (isProductFavorite) {
+  const isFav = isFavorite(_id)
+
+  const toggleFav = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isFav) {
       removeFromFavorites(_id)
     } else {
-      addToFavorites({_id, id, name, price, image, rating, category, colors, sizes, description })
+      addToFavorites({
+        _id,
+        id,
+        name,
+        price,
+        image,
+        rating,
+        category,
+        colors,
+        sizes,
+        description,
+      })
     }
   }
 
-  const renderStars = (rating: number | undefined) => {
-    if (rating === undefined) return null;
-    
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<Star key={`star-${i}`} className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
-    }
-
-    if (hasHalfStar) {
-      stars.push(<StarHalf key="half-star" className="w-4 h-4 fill-yellow-400 text-yellow-400" />);
-    }
-
-    return stars;
-  };
+  const renderStars = (score?: number) => {
+    if (score === undefined) return null
+    const full = Math.floor(score)
+    const half = score % 1 !== 0
+    return (
+      <>
+        {Array.from({ length: full }).map((_, i) => (
+          <Star
+            key={i}
+            className="h-4 w-4 text-yellow-400 fill-yellow-400 drop-shadow"
+          />
+        ))}
+        {half && (
+          <StarHalf className="h-4 w-4 text-yellow-400 fill-yellow-400 drop-shadow" />
+        )}
+      </>
+    )
+  }
 
   return (
-    <motion.div 
-      className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl h-[420px] flex flex-col"
-      whileHover={{ y: -5 }}
-      transition={{ duration: 0.3 }}
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -6 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      className="group relative flex  flex-col overflow-hidden rounded-2xl bg-white/90 ring-1 ring-gray-200 shadow-md dark:bg-gray-800/60 dark:ring-white/10"
     >
-      <div className="relative">
-        <Link href={`/products/${_id}`}>
-          <div className="relative h-48 overflow-hidden">
-            <Image src={API_URL +  image?.url} alt={name} fill className="object-cover transition-transform duration-300 hover:scale-105" />
-          </div>
-        </Link>
-        <div className="absolute top-2 right-2 flex gap-2">
+      {/* ─── Thumbnail ─────────────────────────────────────────────── */}
+      <Link
+        href={`/products/${_id}`}
+        className="relative block aspect-square overflow-hidden"
+      >
+        <Image
+          src={API_URL + image?.url}
+          alt={name}
+          fill
+          sizes="(max-width: 768px) 100vw, 33vw"
+          priority
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+
+        {/* Rating badge */}
+        {rating !== undefined && (
+          <span className="absolute top-3 left-3 flex items-center gap-1 rounded-full bg-white/85 px-2 py-0.5 text-xs font-medium text-gray-900 backdrop-blur">
+            {rating}
+            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+          </span>
+        )}
+
+        {/* Action icons (appear on hover) */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          {/* Add to cart */}
           <Button
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 p-0 bg-white/80 hover:bg-white"
-            onClick={() => addToCart({_id, id, name, price, quantity: 1, image, category, colors, sizes, description, rating })}
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 bg-white/90 backdrop-blur hover:bg-white"
+            onClick={(e) => {
+              e.preventDefault()
+              addToCart({
+                _id,
+                id,
+                name,
+                price,
+                quantity: 1,
+                image,
+                category,
+                colors,
+                sizes,
+                description,
+                rating,
+              })
+            }}
           >
             <ShoppingCart className="h-4 w-4" />
           </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className={`h-8 w-8 p-0 ${isProductFavorite ? 'bg-red-50 hover:bg-red-100' : 'bg-white/80 hover:bg-white'}`}
-            onClick={handleFavoriteClick}
+
+          {/* Favourite */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-9 w-9 backdrop-blur ${isFav
+                ? 'bg-red-50 hover:bg-red-100 text-red-600'
+                : 'bg-white/90 hover:bg-white'
+              }`}
+            onClick={toggleFav}
           >
-            <Heart className={`h-4 w-4 ${isProductFavorite ? 'fill-red-500 text-red-500' : ''}`} />
+            <Heart
+              className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : ''}`}
+            />
           </Button>
         </div>
-      </div>
-      <div className="p-4 flex flex-col flex-grow">
-        <Link href={`/products/${_id}`} className="block mb-2 h-12 overflow-hidden">
-          <h3 className="text-lg font-semibold hover:text-blue-600 transition-colors duration-300 line-clamp-2">{name}</h3>
+      </Link>
+
+      {/* ─── Info section ──────────────────────────────────────────── */}
+      <div className="flex grow flex-col p-4">
+        <Link href={`/products/${_id}`} className="block mb-1 h-12 overflow-hidden">
+          <p className="mb-1 text-xs text-muted-foreground">{category?.name}</p>
+          <h3 className="line-clamp-2 text-base font-semibold text-gray-900 dark:text-white transition-colors duration-300 group-hover:text-primary">
+            {name}
+          </h3>
         </Link>
-        <p className="text-sm text-gray-600 mb-2">{category?.name}</p>
-        <div className="flex items-center mb-2">
-          {renderStars(rating)}
-          {/* <span className="ml-2 text-sm text-gray-600">
-            {rating !== undefined ? `(${rating})` : '(No rating)'}
-          </span> */}
-        </div>
-        <div className="mt-auto">
-          <p className="text-blue-600 dark:text-blue-400 font-semibold text-lg mb-4">
-            د.ع{price?.toLocaleString()}
+
+        <div className="mb-2 flex items-center">{renderStars(rating)}</div>
+
+        <div className="mt-auto flex flex-col gap-3">
+          {/* Price */}
+          <p className="text-xl font-bold text-primary dark:text-blue-400">
+            د.ع {price?.toLocaleString()}
           </p>
+
+          {/* Color dots & quick view */}
           <div className="flex justify-between items-center">
+            {/* Color swatches */}
             <div className="flex space-x-1">
-              {colors && colors.slice(0, 3).map((color) => (
-                <div
-                  key={color}
-                  className="w-4 h-4 rounded-full border border-gray-300"
-                  style={{ backgroundColor: color.toLowerCase() }}
-                  title={color}
-                ></div>
+              {colors?.slice(0, 3).map((c) => (
+                <span
+                  key={c}
+                  className="h-4 w-4 rounded-full border border-gray-300"
+                  style={{ backgroundColor: c.toLowerCase() }}
+                  title={c}
+                />
               ))}
               {colors && colors.length > 3 && (
-                <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center text-xs text-gray-600">
+                <div className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[10px] text-gray-600">
                   +{colors.length - 3}
                 </div>
               )}
             </div>
-            <Link href={`/products/${_id}`}>
+
+            {/* Quick view */}
+            {/* <Link href={`/products/${_id}`}>
               <Button variant="outline" size="sm" className="text-xs">
-                <Eye className="h-3 w-3 mr-1" /> {t('view')}
+                <Eye className="mr-1 h-3 w-3" />
+                {t('view')}
               </Button>
-            </Link>
+            </Link> */}
           </div>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   )
 }
-

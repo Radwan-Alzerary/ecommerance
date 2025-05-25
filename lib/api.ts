@@ -7,7 +7,8 @@ import {
     Order, // Keeping original imports as requested
     Category,
     Customer,
-    AuthResponse // Assuming this type exists for signin response { success: boolean, token?: string, data: Customer }
+    AuthResponse, // Assuming this type exists for signin response { success: boolean, token?: string, data: Customer }
+    CartItem 
 } from "@/types"; // Adjust path if needed
 import { API_URL } from './apiUrl'; // Keeping original import as requested
 
@@ -185,6 +186,32 @@ export async function getCurrentUser(): Promise<Customer | null> {
         return null; // Indicate failure
     }
 }
+export async function getCustomerProfile(): Promise<Customer | null> {
+    try {
+        // Ensure your Customer type in "@/types" includes an 'invoice: Order[]' field (or similar).
+        // The backend for '/api/customers/me' should populate these invoices.
+        const response = await api.get<{ success: boolean; data: Customer }>('/api/customer/me');
+
+        if (response.data.success && response.data.data) {
+            return response.data.data;
+        } else {
+            // Handle cases where success is true but no data, or success is false
+            console.warn("Get Customer Profile: Request successful but data issue or explicit failure.", response.data.message || "No customer data returned.");
+            return null;
+        }
+    } catch (error: any) {
+        // The global response interceptor handles general 401 logging and redirection.
+        // Specific handling for 401/404 in this context can return null to the caller.
+        if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 404)) {
+            console.warn(`Get Customer Profile: Received ${error.response?.status} status. ${error.message}`);
+            return null; // Indicates profile not found or user not authenticated for this resource
+        }
+        // For other errors, log and return null.
+        const message = getErrorMessage(error);
+        console.error("Get Customer Profile API Error:", message);
+        return null;
+    }
+}
 
 
 // --- Product API Functions (Kept exactly as in original input) ---
@@ -292,5 +319,62 @@ export async function getNewArrivalsProduct(): Promise<Product[]> {
     } catch (error: any) {
          // Throwing original error structure
         throw new Error(error.response?.data?.message || "Failed to fetch new arrival products"); // Adjusted generic message slightly
+    }
+}
+
+
+
+
+
+export interface CreateOrderPayload {
+    shippingInfo: {
+        name: string;
+        phone: string;
+        address?: string; // Optional if shippingType is 'internal'
+        city?: string;    // Optional
+        country?: string; // Optional
+        landmark?: string;
+        notes: string;
+        shippingType: 'internal' | 'external';
+    };
+    // Instead of sending the whole user object, usually, you send `userId`
+    // or the backend infers it from the auth token. Let's assume `userId` is preferred.
+    userId: string | undefined; // Or just rely on backend to get it from token
+    items: CartItem[]; // Ensure CartItem includes productId, quantity, price
+    totalAmount: number;
+    shippingFee: number;
+    // Add any other fields your backend expects (e.g., paymentMethodId, couponCode, etc.)
+}
+
+// Define the expected response structure from the backend after creating an order
+export interface CreateOrderResponse {
+    success: boolean;
+    message?: string;
+    order?: Order; // The created order object
+}
+
+/**
+ * Submits the order to the backend.
+ */
+export async function submitOrder(payload: CreateOrderPayload): Promise<Order> {
+    try {
+        // Assuming the backend returns the created order directly or nested under 'data'
+        const response = await api.post<CreateOrderResponse>('/api/orders/create', payload);
+
+        if (response.data.success && response.data.data) {
+            return response.data.data; // Return the Order object
+        } else if (response.data.success && !response.data.data) {
+            // Success true, but no order data. This case needs clarification based on backend behavior.
+            // For now, throw an error or return a minimal Order-like object if appropriate.
+            console.warn("Order creation reported success but no order data was returned.");
+            throw new Error(response.data.message || 'Order created, but no order details received.');
+        }
+        else {
+            throw new Error(response.data.message || 'Failed to create order. Please try again.');
+        }
+    } catch (error: any) {
+        const message = getErrorMessage(error);
+        console.error("Submit Order API Error:", message, error.response?.data);
+        throw new Error(message);
     }
 }

@@ -13,10 +13,7 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <AuthProvider>
-
       <CartProvider>
-
         <ThemeProvider>
           <LanguageProvider>
             <FavoritesProvider>
@@ -25,7 +22,6 @@ export function Providers({ children }: ProvidersProps) {
           </LanguageProvider>
         </ThemeProvider>
       </CartProvider>
-    </AuthProvider>
   )
 }
 

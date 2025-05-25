@@ -1,5 +1,6 @@
 // src/config.ts
-const DEFAULT_API = 'https://main.oro-system.com/';
+// const DEFAULT_API = 'https://radwan.oro-system.com/';
+const DEFAULT_API = 'http://localhost:3000/';
 
 function getApiUrl(): string {
   // 1. honor an explicit override if set

@@ -20,12 +20,16 @@ export function useLanguage() {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState<Language>('en')
+  const [language, setLanguage] = useState<Language>('ar')
 
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language') as Language
+        // document.documentElement.lang = language
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'
+
     if (savedLanguage) {
       setLanguage(savedLanguage)
+      
     }
   }, [])
 

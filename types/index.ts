@@ -31,10 +31,12 @@ export interface AuthResponse {
 }
 
 export interface CartItem extends Product {
+    productId: string;
   quantity: number;
   selectedColor?: string;
   selectedSize?: string;
 }
+
 
 export interface User {
   id: string;

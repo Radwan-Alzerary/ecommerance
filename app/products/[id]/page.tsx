@@ -7,7 +7,7 @@ import { getProduct } from '@/lib/api'
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const product = await getProduct(params.id)
-
+console.log(product)
   if (!product) {
     notFound()
   }

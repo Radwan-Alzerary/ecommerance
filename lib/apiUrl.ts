@@ -16,6 +16,7 @@ function getApiUrl(): string {
     if (host.endsWith(magicSuffix)) {
       // strip the “.oro-eshop.com” off, leaving “radwan”
       const subdomain = host.slice(0, host.length - magicSuffix.length);
+      console.log(subdomain)
       return `https://${subdomain}.oro-system.com/`;
     }
   }

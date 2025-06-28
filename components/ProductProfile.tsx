@@ -262,6 +262,7 @@ export default function ProductProfile({ product }: ProductProfileProps) {
     }, 600)
   }
 
+  
   const openImageZoom = (index) => {
     setSelectedImageIndex(index)
     setIsZoomOpen(true)

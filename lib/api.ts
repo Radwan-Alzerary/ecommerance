@@ -225,22 +225,24 @@ export async function getAllProduct(): Promise<Product[]> {
         throw new Error(error.response?.data?.message || "Failed to fetch products"); // Adjusted generic message slightly
     }
 }
+// --- Fixed version: handles CSR **and** SSR correctly
 export async function getProduct(id: string): Promise<Product | undefined> {
-    try {
-        const response = await api.get<Product>(`/online/food/getOne/${id}`);
-        return response.data;
-    } catch (error: any) {
-        // 404 -> return undefined (Original logic)
-        if (axios.isAxiosError(error) && error.response?.status === 404) { // Check error type
-            console.warn(`Product with ID ${id} not found.`);
-            return undefined;
-        }
-        console.error("Failed to fetch product:", error);
-        // Returning undefined on other errors (Original logic) - consider throwing instead?
-        // throw new Error(getErrorMessage(error)); // Alternative: throw an error
-        return undefined;
+  try {
+    // build an absolute URL so it works even when `window` is undefined (SSR)
+    const url = `${API_URL.replace(/\/$/, "")}/online/food/getOne/${id}`;
+
+    const { data } = await api.get<Product>(url); // keeps interceptors (token, etc.)
+    return data;
+  } catch (error: any) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      console.warn(`Product with ID ${id} not found.`);
+      return undefined;
     }
+    console.error("Failed to fetch product:", error);
+    return undefined;
+  }
 }
+ 
 
 export async function getNewArrivals(): Promise<Product[]> {
     try {

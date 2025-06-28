@@ -35,7 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 interface AuthProviderProps {
     children: ReactNode;
     /**
-     * The path to redirect to for login. Defaults to '/login'.
+     * The path to redirect to for login. Defaults to '/signin'.
      * Ensure this page is NOT itself a child of AuthProvider to avoid redirect loops.
      */
     loginPath?: string;
@@ -47,7 +47,7 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({
     children,
-    loginPath = '/login', // Default login path
+    loginPath = '/signin', // Default login path
     loadingComponent = <div>Loading authentication...</div> // Default loading UI
 }: AuthProviderProps) => {
     const [user, setUser] = useState<Customer | null>(null);

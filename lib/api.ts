@@ -227,37 +227,21 @@ export async function getAllProduct(): Promise<Product[]> {
 }
 // --- Fixed version: handles CSR **and** SSR correctly
 export async function getProduct(id: string): Promise<Product | undefined> {
-    try {
-        console.log(API_URL)
-        let dynamicApiUrl = ""
-        if (typeof window !== 'undefined') {
-            const host = window.location.hostname;                   // e.g. "radwan.oro-eshop.com"
-            const magicSuffix = '.oro-eshop.com';
+  try {
+    // build an absolute URL so it works even when `window` is undefined (SSR)
+        const response = await api.get<Product>(`/online/food/getOne/${id}`);
 
-            if (host.endsWith(magicSuffix)) {
-                // strip the “.oro-eshop.com” off, leaving “radwan”
-                const subdomain = host.slice(0, host.length - magicSuffix.length);
-                console.log(subdomain)
-                dynamicApiUrl = `https://${subdomain}.oro-system.com/`;
-            }
-        }
-
-
-        // build an absolute URL so it works even when `window` is undefined (SSR)
-        const url = `${dynamicApiUrl}/online/food/getOne/${id}`;
-
-        const { data } = await api.get<Product>(url); // keeps interceptors (token, etc.)
-        return data;
-    } catch (error: any) {
-        if (axios.isAxiosError(error) && error.response?.status === 404) {
-            console.warn(`Product with ID ${id} not found.`);
-            return undefined;
-        }
-        console.error("Failed to fetch product:", error);
-        return undefined;
+        return response.data;
+  } catch (error: any) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      console.warn(`Product with ID ${id} not found.`);
+      return undefined;
     }
+    console.error("Failed to fetch product:", error);
+    return undefined;
+  }
 }
-
+ 
 
 export async function getNewArrivals(): Promise<Product[]> {
     try {

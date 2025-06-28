@@ -8,7 +8,7 @@ import {
     Category,
     Customer,
     AuthResponse, // Assuming this type exists for signin response { success: boolean, token?: string, data: Customer }
-    CartItem 
+    CartItem
 } from "@/types"; // Adjust path if needed
 import { API_URL } from './apiUrl'; // Keeping original import as requested
 
@@ -56,11 +56,11 @@ api.interceptors.response.use(
             console.error(`Unauthorized (401) accessing ${error.config?.url}! Redirecting to login...`);
             // Clear potentially invalid token that caused the 401, unless it was the signin attempt itself
             if (typeof window !== 'undefined' && error.config?.url !== '/auth/signin') {
-                 localStorage.removeItem(AUTH_TOKEN_KEY);
-                 console.log("Cleared potentially invalid token from localStorage due to 401.")
+                localStorage.removeItem(AUTH_TOKEN_KEY);
+                console.log("Cleared potentially invalid token from localStorage due to 401.")
             }
-             // Redirect (Original logic kept as requested)
-             // Ensure this doesn't cause loops if /signin itself requires auth or fails
+            // Redirect (Original logic kept as requested)
+            // Ensure this doesn't cause loops if /signin itself requires auth or fails
             if (typeof window !== 'undefined' && window.location.pathname !== '/signin') {
                 window.location.href = "/signin?unauthorized=true"; // Added query param for context
             }
@@ -101,9 +101,9 @@ export async function signInUser(credentials: { identifier: string, password: st
             }
             return response.data.data; // Original return value
         } else if (response.data.success) {
-             // Handle case where backend reports success but doesn't provide a token
-             console.warn("Sign in reported success but no token was provided by the server.");
-             throw new Error("Sign in successful, but token missing in response.");
+            // Handle case where backend reports success but doesn't provide a token
+            console.warn("Sign in reported success but no token was provided by the server.");
+            throw new Error("Sign in successful, but token missing in response.");
         }
         else {
             // Handle explicit failure from backend { success: false, message: '...' }
@@ -123,10 +123,10 @@ export async function signInUser(credentials: { identifier: string, password: st
  * Keeps original function signature and backend endpoint.
  */
 export async function signUpUser(userData: any): Promise<Customer> {
-     try {
+    try {
         // Using original endpoint and expected response structure
-         const response = await api.post<{ success: boolean, message: string, data: Customer }>('/auth/signup', userData); // Original endpoint
-         if (response.data.success) {
+        const response = await api.post<{ success: boolean, message: string, data: Customer }>('/auth/signup', userData); // Original endpoint
+        if (response.data.success) {
             return response.data.data;
         } else {
             throw new Error(response.data.message || 'Sign up failed');
@@ -170,15 +170,15 @@ export async function signOutUser(): Promise<{ success: boolean, message: string
  * Returns null if not authenticated or on error.
  */
 export async function getCurrentUser(): Promise<Customer | null> {
-     try {
+    try {
         // GET /auth/me (Original endpoint) - token added automatically by interceptor
         const response = await api.get<{ success: boolean, data: Customer }>('/auth/me');
         return response.data.success ? response.data.data : null;
     } catch (error: any) {
         // Interceptor handles 401 logging and token clearing
         if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 404)) {
-             // Expected case for no active session
-             return null;
+            // Expected case for no active session
+            return null;
         }
         // Log other unexpected errors
         const message = getErrorMessage(error);
@@ -227,22 +227,37 @@ export async function getAllProduct(): Promise<Product[]> {
 }
 // --- Fixed version: handles CSR **and** SSR correctly
 export async function getProduct(id: string): Promise<Product | undefined> {
-  try {
-    // build an absolute URL so it works even when `window` is undefined (SSR)
-    const url = `${API_URL.replace(/\/$/, "")}/online/food/getOne/${id}`;
+    try {
+        console.log(API_URL)
+        let dynamicApiUrl = ""
+        if (typeof window !== 'undefined') {
+            const host = window.location.hostname;                   // e.g. "radwan.oro-eshop.com"
+            const magicSuffix = '.oro-eshop.com';
 
-    const { data } = await api.get<Product>(url); // keeps interceptors (token, etc.)
-    return data;
-  } catch (error: any) {
-    if (axios.isAxiosError(error) && error.response?.status === 404) {
-      console.warn(`Product with ID ${id} not found.`);
-      return undefined;
+            if (host.endsWith(magicSuffix)) {
+                // strip the “.oro-eshop.com” off, leaving “radwan”
+                const subdomain = host.slice(0, host.length - magicSuffix.length);
+                console.log(subdomain)
+                dynamicApiUrl = `https://${subdomain}.oro-system.com/`;
+            }
+        }
+
+
+        // build an absolute URL so it works even when `window` is undefined (SSR)
+        const url = `${dynamicApiUrl}/online/food/getOne/${id}`;
+
+        const { data } = await api.get<Product>(url); // keeps interceptors (token, etc.)
+        return data;
+    } catch (error: any) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+            console.warn(`Product with ID ${id} not found.`);
+            return undefined;
+        }
+        console.error("Failed to fetch product:", error);
+        return undefined;
     }
-    console.error("Failed to fetch product:", error);
-    return undefined;
-  }
 }
- 
+
 
 export async function getNewArrivals(): Promise<Product[]> {
     try {
@@ -315,11 +330,11 @@ export async function getDealsProduct(): Promise<Product[]> {
 // Note: This seems redundant with getNewArrivals. Kept as requested.
 export async function getNewArrivalsProduct(): Promise<Product[]> {
     try {
-         // Original endpoint '/customers' likely incorrect, kept as requested. Should probably be product related.
+        // Original endpoint '/customers' likely incorrect, kept as requested. Should probably be product related.
         const response = await api.get<Product[]>("/customers");
         return response.data;
     } catch (error: any) {
-         // Throwing original error structure
+        // Throwing original error structure
         throw new Error(error.response?.data?.message || "Failed to fetch new arrival products"); // Adjusted generic message slightly
     }
 }

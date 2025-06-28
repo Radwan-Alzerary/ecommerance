@@ -17,30 +17,30 @@ import 'swiper/css/pagination'
 import 'swiper/css/effect-fade'
 
 const heroSlides = [
-  {
-    id: 1,
-    title: 'Elevate Your Style',
-    subtitle: 'Discover curated collections that define the latest trends',
-    description: 'Immerse yourself in a world of premium fashion and timeless elegance',
-    image: '/hero-slide-1.jpg',
-    fallbackImage: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-    link: '/products',
-    buttonText: 'Shop Now',
-    theme: 'luxury',
-    stats: { label: 'Collections', value: '500+' }
-  },
-  {
-    id: 2,
-    title: 'Summer Essentials',
-    subtitle: 'Get ready for the season with our hottest picks',
-    description: 'From beach vibes to city strolls, find your perfect summer companion',
-    image: '/hero-slide-2.jpg',
-    fallbackImage: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-    link: '/categories/summer',
-    buttonText: 'Explore Summer',
-    theme: 'vibrant',
-    stats: { label: 'New Arrivals', value: '200+' }
-  },
+  // {
+  //   id: 1,
+  //   title: 'Elevate Your Style',
+  //   subtitle: 'Discover curated collections that define the latest trends',
+  //   description: 'Immerse yourself in a world of premium fashion and timeless elegance',
+  //   image: '/hero-slide-1.jpg',
+  //   fallbackImage: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+  //   link: '/products',
+  //   buttonText: 'Shop Now',
+  //   theme: 'luxury',
+  //   stats: { label: 'Collections', value: '500+' }
+  // },
+  // {
+  //   id: 2,
+  //   title: 'Summer Essentials',
+  //   subtitle: 'Get ready for the season with our hottest picks',
+  //   description: 'From beach vibes to city strolls, find your perfect summer companion',
+  //   image: '/hero-slide-2.jpg',
+  //   fallbackImage: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+  //   link: '/categories/summer',
+  //   buttonText: 'Explore Summer',
+  //   theme: 'vibrant',
+  //   stats: { label: 'New Arrivals', value: '200+' }
+  // },
   {
     id: 3,
     title: 'Tech Innovation',

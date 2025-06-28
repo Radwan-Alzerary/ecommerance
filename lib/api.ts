@@ -228,6 +228,7 @@ export async function getAllProduct(): Promise<Product[]> {
 // --- Fixed version: handles CSR **and** SSR correctly
 export async function getProduct(id: string): Promise<Product | undefined> {
   try {
+    console.log(api)
     // build an absolute URL so it works even when `window` is undefined (SSR)
         const response = await api.get<Product>(`/online/food/getOne/${id}`);
 

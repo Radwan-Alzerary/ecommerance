@@ -130,20 +130,7 @@ const DualRangeSlider = ({ min, max, value, onChange, step = 1 }) => {
 }
 
 export default function ProductGrid({ products }: ProductGridProps) {
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [priceRange, setPriceRange] = useState([0, 450000])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedColors, setSelectedColors] = useState<string[]>([])
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
-  const [minRating, setMinRating] = useState(0)
-  const [sortBy, setSortBy] = useState<SortOption>('newest')
-  const [viewMode, setViewMode] = useState<ViewMode>('grid')
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const isDesktop = useIsDesktop()   // 👈
-
-  // Memoized filter options
+  // Memoized filter options - حساب القيم مقدماً
   const filterOptions = useMemo(() => {
     const categories = [...new Set(products.map(product => product.category?.name).filter(Boolean))]
     const colors = [...new Set(products.flatMap(product => product.colors || []))]
@@ -152,6 +139,25 @@ export default function ProductGrid({ products }: ProductGridProps) {
     
     return { categories, colors, sizes, maxPrice }
   }, [products])
+
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>(products)
+  const [searchTerm, setSearchTerm] = useState('')
+  // تحديث: استخدام maxPrice الفعلي بدلاً من القيمة الثابتة
+  const [priceRange, setPriceRange] = useState([0, filterOptions.maxPrice])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedColors, setSelectedColors] = useState<string[]>([])
+  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
+  const [minRating, setMinRating] = useState(0)
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [viewMode, setViewMode] = useState<ViewMode>('grid')
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const isDesktop = useIsDesktop()
+
+  // تحديث نطاق السعر عند تغيير المنتجات
+  useEffect(() => {
+    setPriceRange([0, filterOptions.maxPrice])
+  }, [filterOptions.maxPrice])
 
   // Debounced search
   useEffect(() => {
@@ -555,7 +561,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setPriceRange([0, 50000])}
+                          onClick={() => setPriceRange([0, Math.min(50000, filterOptions.maxPrice)])}
                           className="text-xs h-8 rounded-lg bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                         >
                           تحت 50,000
@@ -563,7 +569,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setPriceRange([50000, 200000])}
+                          onClick={() => setPriceRange([50000, Math.min(200000, filterOptions.maxPrice)])}
                           className="text-xs h-8 rounded-lg bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                         >
                           50K - 200K
@@ -571,7 +577,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setPriceRange([200000, 500000])}
+                          onClick={() => setPriceRange([200000, Math.min(500000, filterOptions.maxPrice)])}
                           className="text-xs h-8 rounded-lg bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                         >
                           200K - 500K

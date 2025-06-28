@@ -7,7 +7,7 @@ function getApiUrl(): string {
   if (process.env.API_BASE_URL) {
     return process.env.API_BASE_URL;
   }
-console.log(window.location.hostname)
+
   // 2. if we're running in the browser, pull the subdomain off the host
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;                   // e.g. "radwan.oro-eshop.com"

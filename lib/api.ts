@@ -8,7 +8,8 @@ import {
     Category,
     Customer,
     AuthResponse, // Assuming this type exists for signin response { success: boolean, token?: string, data: Customer }
-    CartItem
+    CartItem,
+    HeroSlide
 } from "@/types"; // Adjust path if needed
 import { API_URL } from './apiUrl'; // Keeping original import as requested
 
@@ -196,7 +197,7 @@ export async function getCustomerProfile(): Promise<Customer | null> {
             return response.data.data;
         } else {
             // Handle cases where success is true but no data, or success is false
-            console.warn("Get Customer Profile: Request successful but data issue or explicit failure.", response.data.message || "No customer data returned.");
+            console.warn("Get Customer Profile: Request successful but data issue or explicit failure.", "No customer data returned.");
             return null;
         }
     } catch (error: any) {
@@ -261,6 +262,32 @@ export async function getTopSellers(): Promise<Product[]> {
     } catch (error: any) {
         console.error("Failed to fetch top sellers:", error)
         return [] // Original logic: return empty array
+    }
+}
+
+// --- Hero Slides API Function ---
+
+export async function getHeroSlides(): Promise<HeroSlide[]> {
+    try {
+        const response = await api.get<HeroSlide[]>('/api/hero-slides')
+        return response.data
+    } catch (error: any) {
+        console.error("Failed to fetch hero slides:", error)
+        // Return default slides as fallback
+        return [
+            {
+                id: 1,
+                title: 'Tech Innovation',
+                subtitle: 'Experience the future with cutting-edge gadgets',
+                description: 'Revolutionize your lifestyle with the latest technological marvels',
+                image: '/hero-slide-3.jpg',
+                fallbackImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+                link: '/categories/electronics',
+                buttonText: 'Discover Tech',
+                theme: 'futuristic',
+                stats: { label: 'Innovations', value: '150+' }
+            }
+        ]
     }
 }
 
@@ -352,7 +379,7 @@ export interface CreateOrderPayload {
 export interface CreateOrderResponse {
     success: boolean;
     message?: string;
-    order?: Order; // The created order object
+    data?: Order; // The created order object
 }
 
 /**

@@ -60,3 +60,21 @@ export interface Order {
   createdAt: Date;
 }
 
+export interface HeroSlide {
+  id: number;
+  title: string;
+  subtitle: string;
+  description: string;
+  image: string;
+  fallbackImage: string;
+  link: string;
+  buttonText: string;
+  theme: 'luxury' | 'vibrant' | 'futuristic';
+  stats: {
+    label: string;
+    value: string;
+  };
+  isActive?: boolean;
+  order?: number;
+}
+

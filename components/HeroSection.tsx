@@ -10,52 +10,19 @@ import { Button } from '@/components/ui/button'
 import { useLanguage } from '../contexts/LanguageContext'
 import { translations } from '../utils/translations'
 import { ChevronRight, Play, Sparkles, ArrowDown } from 'lucide-react'
+import { getHeroSlides } from '@/lib/api'
+import { HeroSlide } from '@/types'
 
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import 'swiper/css/effect-fade'
 
-const heroSlides = [
-  // {
-  //   id: 1,
-  //   title: 'Elevate Your Style',
-  //   subtitle: 'Discover curated collections that define the latest trends',
-  //   description: 'Immerse yourself in a world of premium fashion and timeless elegance',
-  //   image: '/hero-slide-1.jpg',
-  //   fallbackImage: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-  //   link: '/products',
-  //   buttonText: 'Shop Now',
-  //   theme: 'luxury',
-  //   stats: { label: 'Collections', value: '500+' }
-  // },
-  // {
-  //   id: 2,
-  //   title: 'Summer Essentials',
-  //   subtitle: 'Get ready for the season with our hottest picks',
-  //   description: 'From beach vibes to city strolls, find your perfect summer companion',
-  //   image: '/hero-slide-2.jpg',
-  //   fallbackImage: 'https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-  //   link: '/categories/summer',
-  //   buttonText: 'Explore Summer',
-  //   theme: 'vibrant',
-  //   stats: { label: 'New Arrivals', value: '200+' }
-  // },
-  {
-    id: 3,
-    title: 'Tech Innovation',
-    subtitle: 'Experience the future with cutting-edge gadgets',
-    description: 'Revolutionize your lifestyle with the latest technological marvels',
-    image: '/hero-slide-3.jpg',
-    fallbackImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-    link: '/categories/electronics',
-    buttonText: 'Discover Tech',
-    theme: 'futuristic',
-    stats: { label: 'Innovations', value: '150+' }
-  },
-]
-
-const FloatingElement = ({ delay = 0, children, className = '' }) => (
+const FloatingElement = ({ delay = 0, children, className = '' }: {
+  delay?: number;
+  children: React.ReactNode;
+  className?: string;
+}) => (
   <motion.div
     className={`absolute ${className}`}
     initial={{ opacity: 0, scale: 0 }}
@@ -75,7 +42,12 @@ const FloatingElement = ({ delay = 0, children, className = '' }) => (
   </motion.div>
 )
 
-const ImageWithFallback = ({ src, fallbackSrc, alt, ...props }) => {
+const ImageWithFallback = ({ src, fallbackSrc, alt, ...props }: {
+  src: string;
+  fallbackSrc: string;
+  alt: string;
+  [key: string]: any;
+}) => {
   const [imgSrc, setImgSrc] = useState(src)
   const [hasError, setHasError] = useState(false)
 
@@ -96,7 +68,7 @@ const ImageWithFallback = ({ src, fallbackSrc, alt, ...props }) => {
   )
 }
 
-const ProgressBar = ({ progress }) => (
+const ProgressBar = ({ progress }: { progress: number }) => (
   <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 w-64 h-1 bg-white/20 rounded-full overflow-hidden">
     <motion.div 
       className="h-full bg-gradient-to-r from-white to-white/80 rounded-full"
@@ -109,11 +81,13 @@ const ProgressBar = ({ progress }) => (
 
 export default function HeroSection() {
   const { language } = useLanguage()
-  const t = (key) => translations[language]?.[key] || key
+  const t = (key: string) => (translations[language] as any)?.[key] || key
   const [mounted, setMounted] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
-  const swiperRef = useRef(null)
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([])
+  const [loading, setLoading] = useState(true)
+  const swiperRef = useRef<any>(null)
   const containerRef = useRef(null)
   
   const { scrollYProgress } = useScroll({
@@ -126,6 +100,36 @@ export default function HeroSection() {
 
   useEffect(() => {
     setMounted(true)
+    
+    // Fetch hero slides from API
+    const fetchHeroSlides = async () => {
+      try {
+        setLoading(true)
+        const slides = await getHeroSlides()
+        setHeroSlides(slides)
+      } catch (error) {
+        console.error('Failed to fetch hero slides:', error)
+        // Fallback to default slides if API fails
+        setHeroSlides([
+          {
+            id: 1,
+            title: 'Tech Innovation',
+            subtitle: 'Experience the future with cutting-edge gadgets',
+            description: 'Revolutionize your lifestyle with the latest technological marvels',
+            image: '/hero-slide-3.jpg',
+            fallbackImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+            link: '/categories/electronics',
+            buttonText: 'Discover Tech',
+            theme: 'futuristic',
+            stats: { label: 'Innovations', value: '150+' }
+          }
+        ])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchHeroSlides()
   }, [])
 
   const slideVariants = {
@@ -177,7 +181,7 @@ export default function HeroSection() {
     }
   }
 
-  if (!mounted) {
+  if (!mounted || loading) {
     return (
       <div className="h-[100vh] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <motion.div
@@ -186,6 +190,20 @@ export default function HeroSection() {
           className="text-white text-xl font-light"
         >
           Loading...
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (heroSlides.length === 0) {
+    return (
+      <div className="h-[100vh] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-white text-xl font-light"
+        >
+          No hero slides available
         </motion.div>
       </div>
     )
@@ -341,7 +359,7 @@ export default function HeroSection() {
         {heroSlides.map((_, index) => (
           <button
             key={index}
-            onClick={() => swiperRef.current?.swiper.slideTo(index)}
+            onClick={() => swiperRef.current?.swiper?.slideTo(index)}
             className={`w-12 h-1 rounded-full transition-all duration-300 ${
               index === currentSlide 
                 ? 'bg-white' 

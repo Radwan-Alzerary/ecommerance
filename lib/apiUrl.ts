@@ -8,8 +8,8 @@
  * Fallback when nothing else matches.
  * Change this to whatever default tenant API you want.
  */
-// const FALLBACK_API = "https://alamalelectron.oro-system.com/";
-const FALLBACK_API = "http://localhost:3000/";
+const FALLBACK_API = "https://alamalelectron.oro-system.com/";
+// const FALLBACK_API = "http://localhost:3000/";
 
 /** Ensure the URL we return always ends with “/”. */
 const withTrailingSlash = (url: string): string =>

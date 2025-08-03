@@ -82,11 +82,23 @@ const ProgressBar = ({ progress }: { progress: number }) => (
 export default function HeroSection() {
   const { language } = useLanguage()
   const t = (key: string) => (translations[language] as any)?.[key] || key
+  
+  // Helper function to get translated text from slide or fallback to translations
+  const getSlideText = (slide: HeroSlide, field: 'title' | 'subtitle' | 'description' | 'buttonText') => {
+    // First check if slide has translations for current language
+    if (slide.translations && slide.translations[language] && slide.translations[language][field]) {
+      return slide.translations[language][field]
+    }
+    // Fallback to default field value and then apply global translations
+    return t(slide[field])
+  }
+  
   const [mounted, setMounted] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const swiperRef = useRef<any>(null)
   const containerRef = useRef(null)
   
@@ -98,37 +110,24 @@ export default function HeroSection() {
   const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -100])
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1])
 
+  // Fetch hero slides from API
+  const fetchHeroSlides = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const slides = await getHeroSlides()
+      setHeroSlides(slides)
+    } catch (error) {
+      console.error('Failed to fetch hero slides:', error)
+      setError(error instanceof Error ? error.message : 'Failed to load hero slides')
+      setHeroSlides([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     setMounted(true)
-    
-    // Fetch hero slides from API
-    const fetchHeroSlides = async () => {
-      try {
-        setLoading(true)
-        const slides = await getHeroSlides()
-        setHeroSlides(slides)
-      } catch (error) {
-        console.error('Failed to fetch hero slides:', error)
-        // Fallback to default slides if API fails
-        setHeroSlides([
-          {
-            id: 1,
-            title: 'Tech Innovation',
-            subtitle: 'Experience the future with cutting-edge gadgets',
-            description: 'Revolutionize your lifestyle with the latest technological marvels',
-            image: '/hero-slide-3.jpg',
-            fallbackImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-            link: '/categories/electronics',
-            buttonText: 'Discover Tech',
-            theme: 'futuristic',
-            stats: { label: 'Innovations', value: '150+' }
-          }
-        ])
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchHeroSlides()
   }, [])
 
@@ -195,15 +194,50 @@ export default function HeroSection() {
     )
   }
 
-  if (heroSlides.length === 0) {
+  if (heroSlides.length === 0 && !loading) {
     return (
       <div className="h-[100vh] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-white text-xl font-light"
+          className="text-white text-center space-y-4 max-w-2xl px-6"
         >
-          No hero slides available
+          <div className="text-6xl mb-4">🔌</div>
+          <h2 className="text-2xl font-bold">Hero Slides API Not Available</h2>
+          <p className="text-gray-400 leading-relaxed">
+            {error?.includes('API endpoints are not available') 
+              ? 'The hero slides API endpoints are not deployed yet. Please check the backend setup documentation.' 
+              : error || 'Unable to load promotional content at the moment.'}
+          </p>
+          
+          {process.env.NODE_ENV === 'development' && (
+            <div className="bg-gray-800/50 p-4 rounded-lg text-left text-sm">
+              <p className="text-yellow-400 font-semibold mb-2">Developer Info:</p>
+              <p className="text-gray-300">
+                Missing API endpoints:<br/>
+                • <code>/online/hero-slides</code><br/>
+                • <code>/api/hero-slides</code><br/>
+                <br/>
+                Check <code>BACKEND_SETUP_REQUIRED.md</code> for setup instructions.
+              </p>
+            </div>
+          )}
+          
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={() => fetchHeroSlides()} 
+              className="bg-white text-black hover:bg-gray-100"
+            >
+              Try Again
+            </Button>
+            <Button 
+              onClick={() => window.location.href = '/products'} 
+              variant="outline"
+              className="border-white/30 text-white hover:bg-white/10"
+            >
+              Browse Products
+            </Button>
+          </div>
         </motion.div>
       </div>
     )
@@ -305,22 +339,22 @@ export default function HeroSection() {
                 <motion.div variants={itemVariants} className="space-y-4">
                   <h1 className="text-6xl lg:text-7xl font-bold tracking-tight">
                     <span className="block text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300">
-                      {t(heroSlides[currentSlide]?.title)}
+                      {getSlideText(heroSlides[currentSlide], 'title')}
                     </span>
                   </h1>
                   <p className="text-xl lg:text-2xl text-gray-200 leading-relaxed">
-                    {t(heroSlides[currentSlide]?.subtitle)}
+                    {getSlideText(heroSlides[currentSlide], 'subtitle')}
                   </p>
                   <p className="text-gray-400 leading-relaxed">
-                    {t(heroSlides[currentSlide]?.description)}
+                    {getSlideText(heroSlides[currentSlide], 'description')}
                   </p>
                 </motion.div>
 
                 {/* Action buttons */}
                 <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button asChild size="lg" className="group relative overflow-hidden bg-white text-black hover:bg-gray-100 border-0 px-8 py-6 text-lg font-semibold rounded-2xl transition-all duration-300">
-                    <Link href={heroSlides[currentSlide]?.link} className="flex items-center gap-2">
-                      <span>{t(heroSlides[currentSlide]?.buttonText)}</span>
+                    <Link href={heroSlides[currentSlide]?.link || '#'} className="flex items-center gap-2">
+                      <span>{getSlideText(heroSlides[currentSlide], 'buttonText')}</span>
                       <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </Button>

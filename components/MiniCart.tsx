@@ -129,7 +129,7 @@ const CartItemComponent = ({ item, onUpdateQuantity, onRemove, language, t }) =>
 }
 
 // Enhanced empty cart component
-const EmptyCart = ({ onClose, t }) => (
+const EmptyCart = ({ onClose, t, language }: { onClose: any; t: any; language: string }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -255,7 +255,7 @@ export default function MiniCart({ onClose }: MiniCartProps) {
 
       {/* Cart Content */}
       {cart.length === 0 ? (
-        <EmptyCart onClose={handleClose} t={t} />
+        <EmptyCart onClose={handleClose} t={t} language={language} />
       ) : (
         <>
           {/* Cart Items */}

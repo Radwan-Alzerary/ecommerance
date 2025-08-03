@@ -30,6 +30,7 @@ import {
   KeyRound
 } from 'lucide-react'
 import { signInUser } from '@/lib/api'
+import { signInWithGoogle, signInWithFacebook } from '@/lib/auth'
 
 // Floating decoration component
 const FloatingElement = ({ delay = 0, children, className = '' }) => (
@@ -120,7 +121,7 @@ export default function SignInPage() {
     setTouchedFields(prev => ({ ...prev, [field]: true }))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     if (e && e.preventDefault) {
       e.preventDefault()
     }
@@ -157,13 +158,51 @@ export default function SignInPage() {
       }
 
       setTimeout(() => {
-        const redirectPath = searchParams.get('redirect') || '/checkout'
+        const redirectPath = searchParams.get('redirect') || '/'
         router.push(redirectPath)
       }, 2000)
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('فشل تسجيل الدخول:', err)
       setError(err.message || 'فشل تسجيل الدخول. يرجى التحقق من بياناتك.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsLoading(true)
+      const result = await signInWithGoogle()
+      if (result?.ok) {
+        setIsSuccess(true)
+        setTimeout(() => {
+          const redirectPath = searchParams.get('redirect') || '/'
+          router.push(redirectPath)
+        }, 1000)
+      }
+    } catch (error) {
+      console.error('Google sign in failed:', error)
+      setError('فشل تسجيل الدخول عبر Google')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleFacebookSignIn = async () => {
+    try {
+      setIsLoading(true)
+      const result = await signInWithFacebook()
+      if (result?.ok) {
+        setIsSuccess(true)
+        setTimeout(() => {
+          const redirectPath = searchParams.get('redirect') || '/'
+          router.push(redirectPath)
+        }, 1000)
+      }
+    } catch (error) {
+      console.error('Facebook sign in failed:', error)
+      setError('فشل تسجيل الدخول عبر Facebook')
     } finally {
       setIsLoading(false)
     }
@@ -461,6 +500,7 @@ export default function SignInPage() {
                 className="space-y-3"
               >
                 <Button
+                  onClick={handleGoogleSignIn}
                   variant="outline"
                   className="w-full h-12 bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
                   disabled={isLoading || isSuccess}
@@ -474,6 +514,7 @@ export default function SignInPage() {
                 </Button>
                 
                 <Button
+                  onClick={handleFacebookSignIn}
                   variant="outline"
                   className="w-full h-12 bg-white/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 rounded-2xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
                   disabled={isLoading || isSuccess}

@@ -4,19 +4,21 @@ import HeroSection from '@/components/HeroSection'
 import NewArrivals from '@/components/NewArrivals'
 import BestSellers from '@/components/BestSellers'
 import CategoryCard from '@/components/CategoryCard'
+import SimpleCustomSections from '@/components/SimpleCustomSections'
 import AboutStore from '@/components/AboutStore'
 import ContactForm from '@/components/ContactForm'
 import Newsletter from '@/components/Newsletter'
-import { fetchCategories } from '@/lib/api'
+import { getAllCategory } from '@/lib/api'
 import { useEffect, useState } from 'react'
 import { API_URL } from '@/lib/apiUrl'
+import { Category } from '@/types'
 
 export default function Home() {
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     async function loadCategories() {
-      const data = await fetchCategories();
+      const data = await getAllCategory();
       setCategories(data);
     }
     loadCategories();
@@ -27,6 +29,9 @@ export default function Home() {
       <HeroSection />
       <NewArrivals />
       <BestSellers />
+      
+      {/* Custom Sections */}
+      <SimpleCustomSections />
 
       {/* Category Cards Section */}
       <section className="my-16">
@@ -35,9 +40,10 @@ export default function Home() {
           {categories.map(category => (
             <CategoryCard
               key={category._id}
+              id={category.id}
               name={category.name}
               _id={category._id}
-              image={API_URL + category.image?.url || '/default.jpg'}
+              image={category.image || '/default.jpg'}
             />
           ))}
         </div>

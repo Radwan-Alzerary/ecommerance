@@ -1,15 +1,40 @@
 export interface Product {
   _id: string;
-  id: string;
+  id?: string;
   name: string;
   price: number;
-  image: {url:string};
+  secenderyPrice?: number;
+  priceCurrency?: string;
+  image?: { url: string };
+  images?: Array<{ url: string } | string>;
   category: Category;
-  rating: number;
-  description: string;
+  rating: number[] | number;
+  description?: string;
   colors: string[];
   sizes: string[];
-  dateAdded: string;
+  dateAdded?: string;
+  active?: boolean;
+  quantety?: number;
+  unit?: string;
+  ingredients?: any[];
+  barcode?: string;
+  manualBarcode?: string;
+  cost?: number;
+  alertBeforeDays?: number;
+  costCurrency?: string;
+  discount?: number;
+  printable?: boolean;
+  packageCheck?: boolean;
+  boxPrice?: number;
+  boxCost?: number;
+  boxAmount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  version?: number;
+  syncStatus?: string;
+  isDeleted?: boolean;
+  deletedAt?: string | null;
+  storge?: string;
 }
 // Assuming you have this from previous steps
 export interface Customer {
@@ -61,7 +86,7 @@ export interface Order {
 }
 
 export interface HeroSlide {
-  id: number;
+  id: number | string;
   title: string;
   subtitle: string;
   description: string;
@@ -74,7 +99,99 @@ export interface HeroSlide {
     label: string;
     value: string;
   };
+  translations?: {
+    [language: string]: {
+      title?: string;
+      subtitle?: string;
+      description?: string;
+      buttonText?: string;
+    };
+  };
   isActive?: boolean;
   order?: number;
+}
+
+export interface CustomSection {
+  _id: string;
+  id: string;
+  name: {
+    en: string;
+    ar: string;
+  };
+  slug: string;
+  description?: {
+    en?: string;
+    ar?: string;
+  };
+  settings: {
+    itemsPerRow?: {
+      mobile: number;
+      tablet: number;
+      desktop: number;
+    };
+    layout: 'grid' | 'carousel' | 'list';
+    maxProducts?: number;
+    showPagination?: boolean;
+    showSorting?: boolean;
+    autoplay?: boolean;
+    autoplayDelay?: number;
+    showNavigation?: boolean;
+    spaceBetween?: number;
+    displayType?: 'grid' | 'carousel' | 'list';
+    showTitle?: boolean;
+    showDescription?: boolean;
+    showAddToCart?: boolean;
+    showViewAll?: boolean;
+    maxItems?: number;
+  };
+  styling?: {
+    backgroundColor?: string;
+    textColor?: string;
+    borderColor?: string;
+    borderRadius?: number;
+  };
+  visibility: {
+    enabled: boolean;
+    showInMenu?: boolean;
+    showOnHomepage: boolean;
+    requiredRole?: string;
+  };
+  seo?: {
+    metaTitle?: {
+      en?: string;
+      ar?: string;
+    };
+    metaDescription?: {
+      en?: string;
+      ar?: string;
+    };
+    keywords?: {
+      en?: string[];
+      ar?: string[];
+    };
+  };
+  products: Array<{
+    productId: Product | string;
+    order: number;
+    featured: boolean;
+    addedAt: Date | string;
+    _id: string;
+    id: string;
+  }>;
+  activeProducts?: Array<{
+    productId: Product;
+    order: number;
+    featured: boolean;
+    addedAt: Date | string;
+    _id: string;
+    id: string;
+  }>;
+  productCount?: number;
+  isActive: boolean;
+  order: number;
+  createdBy?: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+  __v?: number;
 }
 

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -163,6 +163,7 @@ export default function SignUpPage() {
 
   // --- Navigation hook ---
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   // Real-time validation
   useEffect(() => {
@@ -255,7 +256,12 @@ export default function SignUpPage() {
       setTouchedFields({})
 
       setTimeout(() => {
-        router.push('/signin')
+        const redirectPath = searchParams.get('redirect')
+        if (redirectPath) {
+          router.push(`/signin?redirect=${redirectPath}`)
+        } else {
+          router.push('/signin')
+        }
       }, 3000)
     } catch (err) {
       console.error('فشل إنشاء الحساب:', err)

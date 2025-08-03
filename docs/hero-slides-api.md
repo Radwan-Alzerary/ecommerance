@@ -4,9 +4,10 @@
 This document describes the API endpoint structure needed for the Hero Section component to fetch dynamic hero slides from the database.
 
 ## API Endpoint
-- **URL**: `/api/hero-slides`
+- **URL**: `/online/hero-slides/`
 - **Method**: `GET`
 - **Authentication**: Optional (public endpoint)
+- **Alternative Admin URL**: `/api/hero-slides` (for admin management)
 
 ## Response Format
 
@@ -16,11 +17,11 @@ This document describes the API endpoint structure needed for the Hero Section c
   "success": true,
   "data": [
     {
-      "id": 1,
+      "id": "60f7b1b3e4b0a7001f647c8e",
       "title": "Tech Innovation",
       "subtitle": "Experience the future with cutting-edge gadgets",
       "description": "Revolutionize your lifestyle with the latest technological marvels",
-      "image": "/hero-slide-1.jpg",
+      "image": "https://yourdomain.com/uploads/hero-slides/hero-slide-1.jpg",
       "fallbackImage": "https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80",
       "link": "/categories/electronics",
       "buttonText": "Discover Tech",
@@ -29,10 +30,20 @@ This document describes the API endpoint structure needed for the Hero Section c
         "label": "Innovations",
         "value": "150+"
       },
-      "isActive": true,
-      "order": 1,
-      "createdAt": "2025-01-01T00:00:00Z",
-      "updatedAt": "2025-01-01T00:00:00Z"
+      "translations": {
+        "ar": {
+          "title": "الابتكار التقني",
+          "subtitle": "اختبر المستقبل مع الأجهزة المتطورة",
+          "description": "ثوّر أسلوب حياتك مع أحدث المعجزات التكنولوجية",
+          "buttonText": "اكتشف التقنية"
+        },
+        "en": {
+          "title": "Tech Innovation",
+          "subtitle": "Experience the future with cutting-edge gadgets",
+          "description": "Revolutionize your lifestyle with the latest technological marvels",
+          "buttonText": "Discover Tech"
+        }
+      }
     }
   ]
 }
@@ -118,9 +129,10 @@ app.get('/api/hero-slides', async (req, res) => {
 The HeroSection component now:
 - Fetches slides on component mount
 - Shows loading state while fetching
-- Falls back to default slides if API fails
-- Displays error message if no slides are available
+- Shows error state with retry functionality if API fails
+- Displays user-friendly error message if no slides are available
 - Maintains all existing animations and functionality
+- **No fallback dummy data** - completely relies on API response
 
 ## Admin Panel Considerations
 Consider creating an admin interface to:

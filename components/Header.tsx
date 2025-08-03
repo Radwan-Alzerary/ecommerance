@@ -2,6 +2,8 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
+import { signOut } from 'next-auth/react'
+import { useAuthStatus } from '@/hooks/useAuthStatus'
 import {
   ShoppingCart,
   User,
@@ -94,35 +96,17 @@ export default function Header() {
   const { language, setLanguage } = useLanguage()
   const { theme, setTheme } = useTheme()
   const { favorites } = useFavorites()
+  const { isAuthenticated, user, isLoading } = useAuthStatus()
   const cartItemsCount = cart.reduce((total, item) => total + item.quantity, 0)
   const router = useRouter()
-  const [isSignedIn, setIsSignedIn] = useState(false)
 
   // Scroll-based header styling
   const { scrollY } = useScroll()
   const headerOpacity = useTransform(scrollY, [0, 100], [0.95, 1])
   const headerBlur = useTransform(scrollY, [0, 100], [10, 20])
 
-  useEffect(() => {
-    const signInData = localStorage.getItem('authToken')
-    let signedIn = false
-
-    if (signInData) {
-
-      console.log("User signed in with token:", signInData)
-      // Here you would typically decode the token and check user details
-      // For simplicity, we assume the user is signed in if token exists
-      signedIn = true
-    }
-    console.log("User signed in status:", localStorage.getItem('authToken'))
-
-    console.log("User signed in status:", signedIn)
-    setIsSignedIn(signedIn)
-  }, [])
-
-  const handleSignOut = () => {
-    localStorage.removeItem('authToken')
-    setIsSignedIn(false)
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: '/' })
     router.refresh()
   }
 
@@ -469,7 +453,7 @@ export default function Header() {
                   align="end"
                   className="w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl shadow-xl"
                 >
-                  {isSignedIn ? (
+                  {isAuthenticated ? (
                     <>
                       <DropdownMenuLabel className="text-center">
                         <div className="flex flex-col items-center py-2">
@@ -672,7 +656,7 @@ export default function Header() {
 
                 {/* Auth Actions */}
                 <div className="mt-8 space-y-3">
-                  {!isSignedIn ? (
+                  {!isAuthenticated ? (
                     <>
                       <Link
                         href="/signin"

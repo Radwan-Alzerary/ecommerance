@@ -1,6 +1,7 @@
 // lib/api.ts (or utils/api.ts etc.)
 
 import axios, { AxiosError } from 'axios'; // Import AxiosError
+import { getSession } from 'next-auth/react'
 import {
     Product,
     User, // Keeping original imports as requested
@@ -9,15 +10,16 @@ import {
     Customer,
     AuthResponse, // Assuming this type exists for signin response { success: boolean, token?: string, data: Customer }
     CartItem,
-    HeroSlide
+    HeroSlide,
+    CustomSection
 } from "@/types"; // Adjust path if needed
 import { API_URL } from './apiUrl'; // Keeping original import as requested
 
 // --- Configuration ---
-const AUTH_TOKEN_KEY = 'authToken'; // Key for storing the token in localStorage
+const AUTH_TOKEN_KEY = 'authToken'; // Key for storing the token in localStorage (fallback for custom auth)
 
 // --- Axios Instance Setup ---
-const api = axios.create({
+export const api = axios.create({
     baseURL: API_URL,
     // withCredentials: true, // Keeping original setting as requested (useful if backend sets other cookies or CORS needs it)
 });
@@ -26,19 +28,30 @@ const api = axios.create({
 
 // Request Interceptor: Automatically adds the Authorization header
 api.interceptors.request.use(
-    (config) => {
-        // Ensure this runs only in the browser
+    async (config) => {
+        // Try to get NextAuth session first
+        try {
+            const session = await getSession()
+            // For social auth, we might not have a traditional token
+            // Most social auth doesn't require additional API tokens
+            if (session?.user) {
+                // For social auth, we can pass user info or handle differently
+                // You might want to create a custom token or use session data
+                console.log('User authenticated via NextAuth:', session.user.email)
+            }
+        } catch (error) {
+            console.warn('Failed to get NextAuth session:', error)
+        }
+
+        // Fallback to localStorage token for custom auth (email/password)
         if (typeof window !== 'undefined') {
             const token = localStorage.getItem(AUTH_TOKEN_KEY);
-            // If a token exists, add it to the Authorization header
             console.log(token)
             if (token) {
                 config.headers = config.headers || {}; // Ensure headers object exists
                 config.headers.Authorization = `Bearer ${token}`;
-                // console.log(`[Request Interceptor] Added Auth header to ${config.method?.toUpperCase()} ${config.url}`); // For debugging
             }
         }
-        // Return the config, potentially modified with the Authorization header
         return config;
     },
     (error) => {
@@ -166,13 +179,35 @@ export async function signOutUser(): Promise<{ success: boolean, message: string
 }
 
 /**
- * Fetches current user data. Relies on interceptor to add token.
- * Keeps original function signature and backend endpoint.
+ * Fetches current user data. Works with both NextAuth and custom auth.
  * Returns null if not authenticated or on error.
  */
 export async function getCurrentUser(): Promise<Customer | null> {
     try {
-        // GET /auth/me (Original endpoint) - token added automatically by interceptor
+        // First check NextAuth session
+        const session = await getSession()
+        if (session?.user) {
+            // Convert NextAuth user to Customer format
+            return {
+                _id: (session.user as any).id || '',
+                name: session.user.name || '',
+                email: session.user.email || '',
+                image: session.user.image || '',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                // Add other Customer fields with defaults
+                phone: '',
+                address: '',
+                dateOfBirth: null,
+                gender: '',
+                preferences: {},
+                loyaltyPoints: 0,
+                isActive: true,
+                orders: []
+            } as Customer
+        }
+
+        // Fallback to API call for custom auth
         const response = await api.get<{ success: boolean, data: Customer }>('/auth/me');
         return response.data.success ? response.data.data : null;
     } catch (error: any) {
@@ -187,6 +222,31 @@ export async function getCurrentUser(): Promise<Customer | null> {
         return null; // Indicate failure
     }
 }
+
+/**
+ * Check if user is authenticated (either via NextAuth or custom auth)
+ */
+export async function isAuthenticated(): Promise<boolean> {
+    try {
+        // Check NextAuth session first
+        const session = await getSession()
+        if (session?.user) {
+            return true
+        }
+
+        // Check localStorage token
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem(AUTH_TOKEN_KEY)
+            return !!token
+        }
+
+        return false
+    } catch (error) {
+        console.error('Error checking authentication:', error)
+        return false
+    }
+}
+
 export async function getCustomerProfile(): Promise<Customer | null> {
     try {
         // Ensure your Customer type in "@/types" includes an 'invoice: Order[]' field (or similar).
@@ -269,25 +329,95 @@ export async function getTopSellers(): Promise<Product[]> {
 
 export async function getHeroSlides(): Promise<HeroSlide[]> {
     try {
-        const response = await api.get<HeroSlide[]>('/api/hero-slides')
-        return response.data
+        // Try the online market endpoint first
+        const response = await api.get<{success: boolean, data: HeroSlide[]} | HeroSlide[]>('/online/hero-slides')
+        
+        // Handle both response formats
+        if (Array.isArray(response.data)) {
+            return response.data
+        } else if (response.data.success) {
+            return response.data.data
+        } else {
+            throw new Error('Failed to fetch hero slides from server')
+        }
     } catch (error: any) {
-        console.error("Failed to fetch hero slides:", error)
-        // Return default slides as fallback
-        return [
-            {
-                id: 1,
-                title: 'Tech Innovation',
-                subtitle: 'Experience the future with cutting-edge gadgets',
-                description: 'Revolutionize your lifestyle with the latest technological marvels',
-                image: '/hero-slide-3.jpg',
-                fallbackImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
-                link: '/categories/electronics',
-                buttonText: 'Discover Tech',
-                theme: 'futuristic',
-                stats: { label: 'Innovations', value: '150+' }
+        console.error("Online hero slides endpoint not available:", error)
+        
+        // Try the API endpoint as fallback
+        try {
+            const fallbackResponse = await api.get<{success: boolean, data: HeroSlide[]} | HeroSlide[]>('/api/hero-slides')
+            
+            if (Array.isArray(fallbackResponse.data)) {
+                return fallbackResponse.data
+            } else if (fallbackResponse.data.success) {
+                return fallbackResponse.data.data
             }
-        ]
+        } catch (fallbackError) {
+            console.error("API hero slides endpoint also not available:", fallbackError)
+        }
+        
+        // If both endpoints fail, throw error to show the error state in component
+        throw new Error('Hero slides API endpoints are not available. Please ensure the backend routes are properly deployed.')
+    }
+}
+
+// --- Custom Sections API Functions ---
+
+export async function getCustomSections(): Promise<CustomSection[]> {
+    try {
+        const response = await api.get<{success: boolean, data: CustomSection[]}>('/online/custom/sections?includeInactive=false&populateProducts=true')
+        
+        if (response.data.success) {
+            return response.data.data
+        } else {
+            throw new Error('Failed to fetch custom sections from server')
+        }
+    } catch (error: any) {
+        console.error("Failed to fetch custom sections:", error)
+        throw new Error(getErrorMessage(error))
+    }
+}
+
+export async function getCustomSectionById(id: string): Promise<CustomSection | null> {
+    try {
+        const response = await api.get<{success: boolean, data: CustomSection}>(`/online/custom/sections/${id}?populateProducts=true`)
+        
+        if (response.data.success) {
+            return response.data.data
+        } else {
+            return null
+        }
+    } catch (error: any) {
+        console.error(`Failed to fetch custom section ${id}:`, error)
+        return null
+    }
+}
+
+export async function getSectionProducts(sectionId: string, params?: {
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+}): Promise<{products: Product[], pagination: any, section: any}> {
+    try {
+        const queryParams = new URLSearchParams()
+        if (params?.page) queryParams.append('page', params.page.toString())
+        if (params?.limit) queryParams.append('limit', params.limit.toString())
+        if (params?.sortBy) queryParams.append('sortBy', params.sortBy)
+        
+        const response = await api.get<{success: boolean, data: Product[], pagination: any, section: any}>(`/online/custom/sections/${sectionId}/products?${queryParams}`)
+        
+        if (response.data.success) {
+            return {
+                products: response.data.data,
+                pagination: response.data.pagination,
+                section: response.data.section
+            }
+        } else {
+            throw new Error('Failed to fetch section products')
+        }
+    } catch (error: any) {
+        console.error(`Failed to fetch section products for ${sectionId}:`, error)
+        throw new Error(getErrorMessage(error))
     }
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import type { CheckedState } from '@radix-ui/react-checkbox'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -33,7 +34,7 @@ import { signInUser } from '@/lib/api'
 import { signInWithGoogle, signInWithFacebook } from '@/lib/auth'
 
 // Floating decoration component
-const FloatingElement = ({ delay = 0, children, className = '' }) => (
+const FloatingElement = ({ delay = 0, children, className = '' }: { delay?: number; children: React.ReactNode; className?: string }) => (
   <motion.div
     className={`absolute ${className}`}
     initial={{ opacity: 0, scale: 0 }}
@@ -96,15 +97,15 @@ export default function SignInPage() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState({})
-  const [touchedFields, setTouchedFields] = useState({})
+  const [fieldErrors, setFieldErrors] = useState<{ identifier?: string; password?: string }>({})
+  const [touchedFields, setTouchedFields] = useState<{ identifier?: boolean; password?: boolean }>({})
   
   const router = useRouter()
   const searchParams = useSearchParams()
 
   // Real-time validation
   useEffect(() => {
-    const errors = {}
+    const errors: { identifier?: string; password?: string } = {}
     
     if (touchedFields.identifier && !identifier.trim()) {
       errors.identifier = 'البريد الإلكتروني أو رقم الهاتف مطلوب'
@@ -117,7 +118,7 @@ export default function SignInPage() {
     setFieldErrors(errors)
   }, [identifier, password, touchedFields])
 
-  const handleFieldTouch = (field) => {
+  const handleFieldTouch = (field: 'identifier' | 'password') => {
     setTouchedFields(prev => ({ ...prev, [field]: true }))
   }
 
@@ -209,6 +210,7 @@ export default function SignInPage() {
   }
 
   return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
@@ -426,7 +428,7 @@ export default function SignInPage() {
                   <Checkbox
                     id="remember"
                     checked={rememberMe}
-                    onCheckedChange={setRememberMe}
+                    onCheckedChange={(checked: CheckedState) => setRememberMe(checked === true)}
                     disabled={isLoading || isSuccess}
                     className="rounded-md"
                   />
@@ -593,5 +595,6 @@ export default function SignInPage() {
         </motion.div>
       </div>
     </div>
+    </Suspense>
   )
 }

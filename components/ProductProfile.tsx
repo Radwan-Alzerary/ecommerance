@@ -24,6 +24,7 @@ import RelatedProducts from './RelatedProducts'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
+import { buildAssetUrl } from '@/lib/apiUrl'
 
 // Simplified translations
 const translations = {
@@ -122,7 +123,19 @@ export default function ProductProfile({ product }: ProductProfileProps) {
     )
   }
 
-  const productImages = product.image?.url ? [product.image.url] : ['/placeholder.jpg']
+  // Build image list (support both product.images and single product.image)
+  const rawImages: string[] = []
+  if (Array.isArray(product.images) && product.images.length > 0) {
+    for (const img of product.images) {
+      if (typeof img === 'string') rawImages.push(img)
+      else if (img?.url) rawImages.push(img.url)
+    }
+  } else if (product.image?.url) {
+    rawImages.push(product.image.url)
+  }
+  const productImages = rawImages.length > 0
+    ? rawImages.map(i => buildAssetUrl(i)).filter(Boolean)
+    : ['/placeholder.jpg']
   const averageRating = Array.isArray(product.rating) && product.rating.length > 0 
     ? product.rating.reduce((acc: number, curr: number) => acc + curr, 0) / product.rating.length 
     : typeof product.rating === 'number' ? product.rating : 0
@@ -130,7 +143,7 @@ export default function ProductProfile({ product }: ProductProfileProps) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header with breadcrumb - Mobile optimized */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-16 z-10">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
           <nav className="flex items-center space-x-2 text-sm overflow-x-auto">
             <Link href="/" className="text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap">

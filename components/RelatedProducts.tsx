@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import ProductCard from './ProductCard'
 import { Product } from '../types'
-import { dummyProducts } from '../data/dummyData';
+import { getAllProduct } from '@/lib/api'
 
 interface RelatedProductsProps {
   currentProductId: string
@@ -14,10 +14,17 @@ export default function RelatedProducts({ currentProductId }: RelatedProductsPro
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
 
   useEffect(() => {
-    const filtered = dummyProducts
-      .filter(product => product.id !== currentProductId)
-      .slice(0, 4);
-    setRelatedProducts(filtered);
+    (async () => {
+      try {
+        const products = await getAllProduct();
+        const filtered = products
+          .filter(product => product.id !== currentProductId)
+          .slice(0, 4);
+        setRelatedProducts(filtered);
+      } catch (e) {
+        console.error('Failed to load related products', e);
+      }
+    })();
   }, [currentProductId])
 
   return (

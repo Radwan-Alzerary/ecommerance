@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import ProductCard from '@/components/ProductCard'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { translations } from '@/utils/translations'
-import { dummyProducts } from '@/data/dummyData'
+import { getNewArrivals } from '@/lib/api'
 import { Product } from '@/types'
 
 export default function NewArrivalsPage() {
@@ -14,12 +14,14 @@ export default function NewArrivalsPage() {
   const t = (key: keyof typeof translations.en) => translations[language][key]
 
   useEffect(() => {
-    // In a real application, you would fetch new arrivals from an API
-    // For this example, we'll just sort products by a hypothetical 'dateAdded' field
-    const sortedProducts = [...dummyProducts].sort((a, b) => 
-      new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
-    ).slice(0, 8) // Get the 8 most recent products
-    setNewArrivals(sortedProducts)
+    (async () => {
+      try {
+        const products = await getNewArrivals();
+        setNewArrivals(products.slice(0, 8));
+      } catch (e) {
+        console.error('Failed to fetch new arrivals', e);
+      }
+    })();
   }, [])
 
   return (

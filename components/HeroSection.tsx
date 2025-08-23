@@ -11,6 +11,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { translations } from '../utils/translations'
 import { ChevronRight, Play, Sparkles, ArrowDown } from 'lucide-react'
 import { getHeroSlides } from '@/lib/api'
+import { buildAssetUrl } from '@/lib/apiUrl'
 import { HeroSlide } from '@/types'
 
 import 'swiper/css'
@@ -280,8 +281,8 @@ export default function HeroSection() {
                 className="relative h-full"
               >
                 <ImageWithFallback
-                  src={slide.image}
-                  fallbackSrc={slide.fallbackImage}
+                  src={buildAssetUrl(slide.image)}
+                  fallbackSrc={buildAssetUrl(slide.fallbackImage) || slide.fallbackImage}
                   alt={slide.title}
                   fill
                   className="object-cover"

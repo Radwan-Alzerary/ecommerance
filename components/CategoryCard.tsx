@@ -8,8 +8,14 @@ import { translations } from '../utils/translations'
 import { Category } from '@/types'
 import { ArrowRight, Sparkles, TrendingUp, Star } from 'lucide-react'
 import { useState } from 'react'
+import { buildAssetUrl } from '@/lib/apiUrl'
 
-interface CategoryCardProps extends Category {}
+interface CategoryCardProps extends Partial<Category> {
+  name: string
+  image?: any
+  _id?: string
+  id?: string
+}
 
 // Fallback images for different categories
 const getCategoryFallbackImage = (categoryName: string) => {
@@ -32,9 +38,15 @@ const getCategoryFallbackImage = (categoryName: string) => {
   }
 }
 
-const ImageWithFallback = ({ src, fallbackSrc, alt, ...props }) => {
-  const [imgSrc, setImgSrc] = useState(src)
-  const [hasError, setHasError] = useState(false)
+interface ImageWithFallbackProps extends Omit<React.ComponentProps<typeof Image>, 'src' | 'alt'> {
+  src: string;
+  fallbackSrc: string;
+  alt: string;
+}
+
+const ImageWithFallback = ({ src, fallbackSrc, alt, ...props }: ImageWithFallbackProps) => {
+  const [imgSrc, setImgSrc] = useState<string>(src)
+  const [hasError, setHasError] = useState<boolean>(false)
 
   const handleError = () => {
     if (!hasError && fallbackSrc) {
@@ -53,9 +65,9 @@ const ImageWithFallback = ({ src, fallbackSrc, alt, ...props }) => {
   )
 }
 
-export default function CategoryCard({ name, image, _id }: CategoryCardProps) {
+export default function CategoryCard({ name, image, _id, id }: CategoryCardProps) {
   const { language } = useLanguage()
-  const t = (key) => translations[language]?.[key] || key
+  const t = (key: string) => (translations as any)[language]?.[key] || key
   const [isHovered, setIsHovered] = useState(false)
 
   // Motion values for 3D tilt effect
@@ -64,7 +76,7 @@ export default function CategoryCard({ name, image, _id }: CategoryCardProps) {
   const rotateX = useTransform(mouseY, [-100, 100], [8, -8])
   const rotateY = useTransform(mouseX, [-100, 100], [-8, 8])
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect()
     const centerX = rect.left + rect.width / 2
     const centerY = rect.top + rect.height / 2
@@ -100,7 +112,7 @@ export default function CategoryCard({ name, image, _id }: CategoryCardProps) {
       onMouseLeave={handleMouseLeave}
       className="group relative overflow-hidden rounded-3xl shadow-2xl shadow-black/10 dark:shadow-black/30"
     >
-      <Link href={`/categories/${_id}`} className="block">
+  <Link href={`/categories/${_id || id || encodeURIComponent(name)}`} className="block">
         <div className="relative h-64 w-full overflow-hidden">
           {/* Main image with parallax effect */}
           <motion.div
@@ -109,7 +121,7 @@ export default function CategoryCard({ name, image, _id }: CategoryCardProps) {
             transition={{ duration: 0.7, ease: "easeOut" }}
           >
             <ImageWithFallback
-              src={image || "/placeholder.svg"}
+              src={image ? buildAssetUrl(image) : "/placeholder.svg"}
               fallbackSrc={fallbackImage}
               alt={name}
               fill

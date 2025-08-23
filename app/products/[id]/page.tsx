@@ -1,6 +1,5 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { dummyProducts } from '@/data/dummyData'
 import ProductProfile from '@/components/ProductProfile'
 import { ChevronRight } from 'lucide-react'
 import { getProduct } from '@/lib/api'

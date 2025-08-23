@@ -9,7 +9,7 @@ import { useCart } from '../contexts/CartContext'
 import { useLanguage } from '../contexts/LanguageContext'
 import { translations, TranslationKey } from '../utils/translations'
 import { CartItem } from '../types'
-import { API_URL } from '@/lib/apiUrl'
+import { buildAssetUrl } from '@/lib/apiUrl'
 import { useState } from 'react'
 
 interface MiniCartProps {
@@ -44,7 +44,7 @@ const CartItemComponent = ({ item, onUpdateQuantity, onRemove, language, t }) =>
         {/* Product Image */}
         <div className="relative w-20 h-20 rounded-xl overflow-hidden group-hover:scale-105 transition-transform duration-300">
           <Image
-            src={item.image?.url ? API_URL + item.image.url : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'}
+            src={item.image?.url ? buildAssetUrl(item.image.url) : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'}
             alt={item.name}
             fill
             className="object-cover"

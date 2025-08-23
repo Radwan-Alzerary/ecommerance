@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import ProductCard from '@/components/ProductCard'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { translations } from '@/utils/translations'
-import { dummyProducts } from '@/data/dummyData'
 import { Product } from '@/types'
 import { getAllProduct } from '@/lib/api'
 
@@ -15,12 +14,15 @@ export default function DealsPage() {
   const t = (key: keyof typeof translations.en) => translations[language][key]
 
   useEffect(() => {
-    // In a real application, you would fetch deals from an API
-    // For this example, we'll just filter products with a price ending in .99
-    const dealsProducts = dummyProducts.filter(product => 
-      product.price.toFixed(2).endsWith('.99')
-    )
-    setDeals(dealsProducts)
+    (async () => {
+      try {
+        const products = await getAllProduct();
+        const dealsProducts = products.filter(p => p.price && Number(p.price).toFixed(2).endsWith('.99'))
+        setDeals(dealsProducts.slice(0, 20));
+      } catch (e) {
+        console.error('Failed to fetch deals products', e);
+      }
+    })();
   }, [])
 
   return (

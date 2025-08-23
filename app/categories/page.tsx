@@ -1,4 +1,3 @@
-import { categoryImages } from '@/data/dummyData'
 import CategoryList from '@/components/CategoryList'
 import { getAllCategory } from '@/lib/api';
 

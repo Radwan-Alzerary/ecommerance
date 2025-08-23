@@ -45,10 +45,11 @@ import MiniCart from './MiniCart'
 import { useRouter } from 'next/navigation'
 import { Product } from '../types'
 import { useFavorites } from '../contexts/FavoritesContext'
-import { fetchCategories } from '@/lib/api'
+import { fetchCategories, getAllProduct } from '@/lib/api'
 
 // Enhanced search suggestion component
-const SearchSuggestion = ({ product, onClick }) => (
+interface SearchSuggestionProps { product: Product; onClick: () => void }
+const SearchSuggestion = ({ product, onClick }: SearchSuggestionProps) => (
   <motion.div
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
@@ -68,7 +69,7 @@ const SearchSuggestion = ({ product, onClick }) => (
 )
 
 // Notification badge component
-const NotificationBadge = ({ count, color = "bg-blue-500" }) => {
+const NotificationBadge = ({ count, color = "bg-blue-500" }: { count: number; color?: string }) => {
   if (count === 0) return null
 
   return (
@@ -112,15 +113,10 @@ export default function Header() {
 
   const t = (key: TranslationKey) => translations[language][key]
 
-  // Mock products for search (replace with actual API call)
-  const dummyProducts = [
-    { id: '1', name: 'Premium Headphones', description: 'High-quality wireless headphones' },
-    { id: '2', name: 'Smart Watch', description: 'Latest smartwatch with health tracking' },
-    { id: '3', name: 'Gaming Laptop', description: 'High-performance gaming laptop' },
-  ]
+  const [allProducts, setAllProducts] = useState<Product[]>([])
 
   useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = async () => {
       try {
         const data = await fetchCategories()
         const categoriesData = data.map((cat: { _id: string; name: string }) => ({
@@ -128,6 +124,8 @@ export default function Header() {
           name: cat.name,
         }))
         setCategories(categoriesData)
+    // Prefetch products list for search suggestions
+    getAllProduct().then(setAllProducts).catch(err => console.warn('Failed to prefetch products', err))
       } catch (error) {
         console.error("Error fetching categories:", error)
       }
@@ -138,15 +136,15 @@ export default function Header() {
 
   useEffect(() => {
     if (searchQuery.length > 2) {
-      const filtered = dummyProducts.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      const filtered = allProducts.filter(product =>
+        product.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description?.toLowerCase().includes(searchQuery.toLowerCase())
       ).slice(0, 5)
       setSearchResults(filtered)
     } else {
       setSearchResults([])
     }
-  }, [searchQuery])
+  }, [searchQuery, allProducts])
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'ar' : 'en')
@@ -252,7 +250,6 @@ export default function Header() {
                 <DropdownMenuContent
                   align="center"
                   className={`w-[600px] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/50 dark:border-gray-700/50 rounded-2xl shadow-xl p-6 ${language === 'ar' ? 'text-right' : 'text-left'}`}
-                  dir={language === 'ar' ? 'rtl' : 'ltr'}
                 >
                   <DropdownMenuLabel className="text-center font-semibold text-lg mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     {language === 'ar' ? 'تصفح الفئات' : 'Browse Categories'}

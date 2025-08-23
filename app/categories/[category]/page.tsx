@@ -1,10 +1,9 @@
 "use client"
 import Image from 'next/image'
-import { categoryImages } from '@/data/dummyData'
 import ProductGrid from '@/components/ProductGrid'
 import { getProductByCategory } from '@/lib/api'
 import { useEffect, useState } from 'react'
-import { API_URL } from '@/lib/apiUrl'
+import { buildAssetUrl } from '@/lib/apiUrl'
 
 export default function CategoryPage({ params }: { params: { category: string } }) {
   const categoryName = decodeURIComponent(params.category)
@@ -22,12 +21,12 @@ export default function CategoryPage({ params }: { params: { category: string } 
   if (!categoryProduct) {
     return <div>Loading...</div>
   }
-console.log(API_URL + categoryProduct.image?.url)
+// console.log('Category hero image:', buildAssetUrl(categoryProduct.image?.url))
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 relative h-64 rounded-lg overflow-hidden">
         <Image
-          src={API_URL + categoryProduct.image?.url || '/placeholder.svg'}
+          src={buildAssetUrl(categoryProduct.image?.url) || '/placeholder.svg'}
           alt={categoryProduct.name}
           fill
           className="object-cover"

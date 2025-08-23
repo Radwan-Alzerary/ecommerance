@@ -13,7 +13,7 @@ import {
     HeroSlide,
     CustomSection
 } from "@/types"; // Adjust path if needed
-import { API_URL } from './apiUrl'; // Keeping original import as requested
+import { API_URL, getApiUrl } from './apiUrl'; // Import getApiUrl for per-request baseURL
 
 // --- Configuration ---
 const AUTH_TOKEN_KEY = 'authToken'; // Key for storing the token in localStorage (fallback for custom auth)
@@ -29,6 +29,13 @@ export const api = axios.create({
 // Request Interceptor: Automatically adds the Authorization header
 api.interceptors.request.use(
     async (config) => {
+        // Always set baseURL at request time to support dynamic subdomains (SSR & CSR)
+        try {
+            config.baseURL = getApiUrl();
+        } catch (e) {
+            // fallback silently to default API_URL if per-request resolution fails
+            config.baseURL = API_URL;
+        }
         // Try to get NextAuth session first
         try {
             const session = await getSession()
@@ -289,7 +296,6 @@ export async function getAllProduct(): Promise<Product[]> {
 // --- Fixed version: handles CSR **and** SSR correctly
 export async function getProduct(id: string): Promise<Product | undefined> {
   try {
-    console.log(api)
     // build an absolute URL so it works even when `window` is undefined (SSR)
         const response = await api.get<Product>(`/online/food/getOne/${id}`);
 

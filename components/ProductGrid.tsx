@@ -42,19 +42,27 @@ interface ProductGridProps {
 type SortOption = 'name' | 'price-low' | 'price-high' | 'rating' | 'newest'
 type ViewMode = 'grid' | 'list'
 
+type DualRangeSliderProps = {
+  min: number
+  max: number
+  value: [number, number]
+  onChange: (value: [number, number]) => void
+  step?: number
+}
+
 // Custom Dual Range Slider Component
-const DualRangeSlider = ({ min, max, value, onChange, step = 1 }) => {
-  const sliderRef = useRef(null)
-  const [isDragging, setIsDragging] = useState(null)
+const DualRangeSlider = ({ min, max, value, onChange, step = 1 }: DualRangeSliderProps) => {
+  const sliderRef = useRef<HTMLDivElement | null>(null)
+  const [isDragging, setIsDragging] = useState<number | null>(null)
 
-  const getPercent = (value, min, max) => Math.round(((value - min) / (max - min)) * 100)
+  const getPercent = (value: number, min: number, max: number) => Math.round(((value - min) / (max - min)) * 100)
 
-  const handleMouseDown = (index) => (event) => {
+  const handleMouseDown = (index: 0 | 1) => (event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault()
     setIsDragging(index)
   }
 
-  const handleMouseMove = (event) => {
+  const handleMouseMove = (event: MouseEvent) => {
     if (isDragging === null || !sliderRef.current) return
 
     const rect = sliderRef.current.getBoundingClientRect()
@@ -62,7 +70,7 @@ const DualRangeSlider = ({ min, max, value, onChange, step = 1 }) => {
     const newValue = Math.round((percent / 100) * (max - min) + min)
     const snappedValue = Math.round(newValue / step) * step
 
-    const newRange = [...value]
+    const newRange: [number, number] = [...value] as [number, number]
     newRange[isDragging] = Math.max(min, Math.min(max, snappedValue))
     
     // Ensure min doesn't exceed max
@@ -130,20 +138,31 @@ const DualRangeSlider = ({ min, max, value, onChange, step = 1 }) => {
 }
 
 export default function ProductGrid({ products }: ProductGridProps) {
+  const getNumericRating = (rating: Product['rating']): number => {
+    if (Array.isArray(rating)) {
+      if (!rating.length) return 0
+      const sum = rating.reduce((acc, r) => acc + (typeof r === 'number' ? r : Number(r) || 0), 0)
+      return sum / rating.length
+    }
+    return typeof rating === 'number' ? rating : Number(rating) || 0
+  }
   // Memoized filter options - حساب القيم مقدماً
   const filterOptions = useMemo(() => {
-    const categories = [...new Set(products.map(product => product.category?.name).filter(Boolean))]
-    const colors = [...new Set(products.flatMap(product => product.colors || []))]
-    const sizes = [...new Set(products.flatMap(product => product.sizes || []))]
-    const maxPrice = Math.max(...products.map(p => p.price || 0))
-    
+    const categoryNames = products
+      .map(product => product.category?.name)
+      .filter((n): n is string => Boolean(n))
+    const categories = Array.from(new Set(categoryNames))
+  const colors = Array.from(new Set(products.flatMap(product => product.colors || [])))
+  const sizes = Array.from(new Set(products.flatMap(product => product.sizes || [])))
+  const maxPrice = products.length ? Math.max(...products.map(p => p.price || 0)) : 0
+
     return { categories, colors, sizes, maxPrice }
   }, [products])
 
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(products)
   const [searchTerm, setSearchTerm] = useState('')
   // تحديث: استخدام maxPrice الفعلي بدلاً من القيمة الثابتة
-  const [priceRange, setPriceRange] = useState([0, filterOptions.maxPrice])
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, filterOptions.maxPrice])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedColors, setSelectedColors] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
@@ -159,18 +178,24 @@ export default function ProductGrid({ products }: ProductGridProps) {
     setPriceRange([0, filterOptions.maxPrice])
   }, [filterOptions.maxPrice])
 
+  // Keep filtered products in sync when incoming products change
+  useEffect(() => {
+    setFilteredProducts(products)
+  }, [products])
+
   // Debounced search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       filterAndSortProducts()
     }, 300)
     return () => clearTimeout(timeoutId)
-  }, [searchTerm, priceRange, selectedCategories, selectedColors, selectedSizes, minRating, sortBy])
+  }, [products, searchTerm, priceRange, selectedCategories, selectedColors, selectedSizes, minRating, sortBy])
 
   const filterAndSortProducts = () => {
     setIsLoading(true)
     
     let filtered = products.filter(product => {
+      const ratingValue = getNumericRating(product.rating)
       const matchesSearch = !searchTerm || 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -186,7 +211,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
       const matchesSize = selectedSizes.length === 0 || 
         (product.sizes && product.sizes.some(size => selectedSizes.includes(size)))
       
-      const matchesRating = !minRating || (product.rating && product.rating >= minRating)
+      const matchesRating = !minRating || ratingValue >= minRating
       
       return matchesSearch && matchesPrice && matchesCategory && matchesColor && matchesSize && matchesRating
     })
@@ -201,7 +226,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
         case 'price-high':
           return (b.price || 0) - (a.price || 0)
         case 'rating':
-          return (b.rating || 0) - (a.rating || 0)
+          return getNumericRating(b.rating) - getNumericRating(a.rating)
         case 'newest':
         default:
           return 0

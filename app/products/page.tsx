@@ -2,17 +2,23 @@
 
 import ProductGrid from '@/components/ProductGrid';
 import { getAllProduct } from '@/lib/api';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { Product } from '@/types';
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  // Prevent double fetch in React 18 Strict Mode (dev) and guard unmount
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    if (hasFetchedRef.current) return; // skip the second dev invocation
+    hasFetchedRef.current = true;
+
+    let isMounted = true;
     const fetchProducts = async () => {
       try {
         const productData = await getAllProduct();
-        setProducts(productData);
-        console.log(productData);
+        if (isMounted) setProducts(productData);
         
       } catch (error) {
         console.error("Failed to fetch products:", error);
@@ -20,6 +26,9 @@ export default function ProductsPage() {
     };
 
     fetchProducts();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (

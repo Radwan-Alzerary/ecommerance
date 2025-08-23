@@ -4,6 +4,8 @@ import ProductProfile from '@/components/ProductProfile'
 import { ChevronRight } from 'lucide-react'
 import { getProduct } from '@/lib/api'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ProductPage({ params }: { params: { id: string } }) {
   const product = await getProduct(params.id)
   console.log(product)

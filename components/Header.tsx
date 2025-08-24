@@ -45,7 +45,7 @@ import MiniCart from './MiniCart'
 import { useRouter } from 'next/navigation'
 import { Product } from '../types'
 import { useFavorites } from '../contexts/FavoritesContext'
-import { fetchCategories, getAllProduct } from '@/lib/api'
+import { fetchCategories, getAllProduct, getStoreSettingsPublic } from '@/lib/api'
 
 // Enhanced search suggestion component
 interface SearchSuggestionProps { product: Product; onClick: () => void }
@@ -114,6 +114,9 @@ export default function Header() {
   const t = (key: TranslationKey) => translations[language][key]
 
   const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [storeName, setStoreName] = useState<string>('Oro Eshop')
+  const [logoTextColor, setLogoTextColor] = useState<string>('')
+  const [logoImageUrl, setLogoImageUrl] = useState<string>('')
 
   useEffect(() => {
   const fetchData = async () => {
@@ -124,6 +127,13 @@ export default function Header() {
           name: cat.name,
         }))
         setCategories(categoriesData)
+        // Load store settings (public) for current language
+        const lang = language === 'ar' ? 'ar' : 'en'
+        getStoreSettingsPublic(lang).then((ss) => {
+          if (ss?.store?.name) setStoreName(ss.store.name)
+          if (ss?.logo?.textColor) setLogoTextColor(ss.logo.textColor)
+          if (ss?.logo?.imageUrl) setLogoImageUrl(ss.logo.imageUrl)
+        }).catch(() => {})
     // Prefetch products list for search suggestions
     getAllProduct().then(setAllProducts).catch(err => console.warn('Failed to prefetch products', err))
       } catch (error) {
@@ -132,7 +142,7 @@ export default function Header() {
     }
 
     fetchData()
-  }, [])
+  }, [language])
 
   useEffect(() => {
     if (searchQuery.length > 2) {
@@ -202,11 +212,15 @@ export default function Header() {
                   whileHover={{ scale: 1.05 }}
                   className="flex items-center gap-3"
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Sparkles className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    Oro Eshop
+                  {logoImageUrl ? (
+                    <img src={logoImageUrl} alt={storeName} className="h-10 w-10 object-contain rounded-2xl shadow-lg" />
+                  ) : (
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                  <span className="text-2xl font-bold" style={{ color: logoTextColor || undefined }}>
+                    {storeName}
                   </span>
                 </motion.div>
               </Link>

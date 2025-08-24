@@ -384,6 +384,64 @@ export async function getCustomSections(): Promise<CustomSection[]> {
     }
 }
 
+// --- Store Settings API ---
+
+export type Bilingual<T = string> = { ar?: T; en?: T }
+export interface StoreSettingsFull {
+    storeId: string
+    logo: { type: 'text'|'text-circle'|'image'|'image-text'; textColor: string; imageUrl?: string }
+    store: { name: Bilingual; type: string; description: Bilingual; primaryColor: string }
+    strengths: Array<{ icon: string; title: Bilingual; description: Bilingual; order: number }>
+    socialMedia: { facebook?: string; x?: string; youtube?: string; instagram?: string; linkedin?: string }
+    aboutUs: Bilingual
+    seo: { metaTitle: Bilingual; metaDescription: Bilingual; keywords: string[] }
+    display: { showStrengths: boolean; showSocialMedia: boolean; showAboutUs: boolean; strengthsLayout: 'grid'|'list'|'carousel' }
+    isActive: boolean
+    logoUrl?: string | null
+    version: number
+    createdAt: string
+    updatedAt: string
+}
+
+export interface StoreSettingsPublic {
+    store: { name: string; type: string; description?: string; primaryColor: string }
+    strengths: Array<{ icon: string; title: string; description?: string; order: number }>
+    socialMedia: { facebook?: string; x?: string; youtube?: string; instagram?: string; linkedin?: string }
+    aboutUs?: string
+    seo?: { metaTitle?: string; metaDescription?: string; keywords?: string[] }
+    logo: { type: 'text'|'text-circle'|'image'|'image-text'; textColor: string; imageUrl?: string }
+}
+
+export async function getStoreSettingsFull(): Promise<StoreSettingsFull | null> {
+    try {
+        const res = await api.get<{ success: boolean; data: StoreSettingsFull }>(`/api/online/store-settings`)
+        return res.data.success ? res.data.data : null
+    } catch (e) {
+        console.error('Failed to fetch store settings (full):', e)
+        return null
+    }
+}
+
+export async function getStoreSettingsByLang(lang: 'ar'|'en' = 'ar'): Promise<StoreSettingsPublic | null> {
+    try {
+        const res = await api.get<{ success: boolean; data: StoreSettingsPublic }>(`/api/online/store-settings/lang/${lang}`)
+        return res.data.data
+    } catch (e) {
+        console.error('Failed to fetch store settings by lang:', e)
+        return null
+    }
+}
+
+export async function getStoreSettingsPublic(lang: 'ar'|'en' = 'ar'): Promise<StoreSettingsPublic | null> {
+    try {
+        const res = await api.get<{ success: boolean; data: StoreSettingsPublic }>(`/api/online/store-settings/public?lang=${lang}`)
+        return res.data.data
+    } catch (e) {
+        console.error('Failed to fetch store settings public:', e)
+        return null
+    }
+}
+
 export async function getCustomSectionById(id: string): Promise<CustomSection | null> {
     try {
         const response = await api.get<{success: boolean, data: CustomSection}>(`/online/custom/sections/${id}?populateProducts=true`)

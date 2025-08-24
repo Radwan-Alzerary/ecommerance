@@ -94,7 +94,7 @@ export default function Header() {
   const [notifications] = useState(3) // Mock notifications
   const headerRef = useRef(null)
   const [panelTop, setPanelTop] = useState<number>(80)
-  const [isClient, setIsClient] = useState(false)
+  const [isClient, setIsClient] = useState<boolean>(typeof window !== 'undefined')
 
   const { cart } = useCart()
   const { language, setLanguage } = useLanguage()
@@ -132,7 +132,10 @@ export default function Header() {
       window.removeEventListener('resize', calcTop)
       window.removeEventListener('scroll', calcTop)
     }
-  const fetchData = async () => {
+  }, [])
+
+  useEffect(() => {
+    const fetchData = async () => {
       try {
         const data = await fetchCategories()
         const categoriesData = data.map((cat: { _id: string; name: string }) => ({
@@ -140,8 +143,8 @@ export default function Header() {
           name: cat.name,
         }))
         setCategories(categoriesData)
-    // Prefetch products list for search suggestions
-    getAllProduct().then(setAllProducts).catch(err => console.warn('Failed to prefetch products', err))
+        // Prefetch products list for search suggestions
+        getAllProduct().then(setAllProducts).catch(err => console.warn('Failed to prefetch products', err))
       } catch (error) {
         console.error("Error fetching categories:", error)
       }
@@ -338,7 +341,7 @@ export default function Header() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsSearchOpen(false)}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90]"
                       />
 
                       {/* Search Panel */}
@@ -346,7 +349,7 @@ export default function Header() {
                         initial={{ opacity: 0, scale: 0.95, y: -10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        className="fixed w-96 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 z-[70] overflow-hidden"
+                        className="fixed w-96 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 z-[100] overflow-hidden"
                         style={{ top: panelTop, [language === 'en' ? 'right' : 'left']: 24 } as any}
                       >
                         <div className="p-6">
@@ -545,7 +548,7 @@ export default function Header() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsCartOpen(false)}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[90]"
                       />
 
                       {/* Cart Panel */}
@@ -553,7 +556,7 @@ export default function Header() {
                         initial={{ opacity: 0, x: 20, y: -10 }}
                         animate={{ opacity: 1, x: 0, y: 0 }}
                         exit={{ opacity: 0, x: 20, y: -10 }}
-                        className="fixed z-[70]"
+                        className="fixed z-[100]"
                         style={{ top: panelTop, [language === 'en' ? 'right' : 'left']: 24 } as any}
                       >
                         <MiniCart onClose={() => setIsCartOpen(false)} />

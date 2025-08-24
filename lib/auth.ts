@@ -4,19 +4,14 @@ import { api } from './api' // استيراد axios instance
 
 export const signInWithGoogle = async () => {
   try {
-    const result = await signIn('google', { 
+    const result = await signIn('google', {
       callbackUrl: '/',
-      redirect: false 
+      redirect: false,
     })
-    
-    // إذا نجح تسجيل الدخول، احفظ البيانات في السيرفر
-    if (result?.ok) {
-      const session = await getSession()
-      if (session?.user) {
-        await saveOAuthUserToServer('google', session.user)
-      }
+    // NextAuth يرجع رابط التحويل عند redirect:false – نفذه يدويًا
+    if (result?.url) {
+      window.location.assign(result.url)
     }
-    
     return result
   } catch (error) {
     console.error('Google sign in error:', error)
@@ -26,19 +21,13 @@ export const signInWithGoogle = async () => {
 
 export const signInWithFacebook = async () => {
   try {
-    const result = await signIn('facebook', { 
+    const result = await signIn('facebook', {
       callbackUrl: '/',
-      redirect: false 
+      redirect: false,
     })
-    
-    // إذا نجح تسجيل الدخول، احفظ البيانات في السيرفر
-    if (result?.ok) {
-      const session = await getSession()
-      if (session?.user) {
-        await saveOAuthUserToServer('facebook', session.user)
-      }
+    if (result?.url) {
+      window.location.assign(result.url)
     }
-    
     return result
   } catch (error) {
     console.error('Facebook sign in error:', error)
@@ -47,7 +36,7 @@ export const signInWithFacebook = async () => {
 }
 
 // دالة لحفظ بيانات OAuth في السيرفر
-const saveOAuthUserToServer = async (provider: 'google' | 'facebook', user: any) => {
+export const saveOAuthUserToServer = async (provider: 'google' | 'facebook', user: any) => {
   try {
     const endpoint = provider === 'google' ? '/auth/oauth/google' : '/auth/oauth/facebook'
     

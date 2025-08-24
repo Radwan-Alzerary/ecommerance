@@ -351,10 +351,11 @@ export default function Header() {
                               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 px-2">Suggestions</p>
                               {searchResults.map((product) => (
                                 <SearchSuggestion
-                                  key={product.id}
+                                  key={(product as any)._id || product.id}
                                   product={product}
                                   onClick={() => {
-                                    router.push(`/products/${product.id}`)
+                                    const pid = (product as any)._id || product.id
+                                    router.push(`/products/${pid}`)
                                     setIsSearchOpen(false)
                                     setSearchQuery('')
                                   }}

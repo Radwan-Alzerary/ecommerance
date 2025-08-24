@@ -2,12 +2,16 @@
 import { signIn, getSession } from 'next-auth/react'
 import { api } from './api' // استيراد axios instance
 
-export const signInWithGoogle = async (opts?: { callbackUrl?: string }) => {
+export const signInWithGoogle = async () => {
   try {
     const result = await signIn('google', {
-      callbackUrl: opts?.callbackUrl ?? '/',
-      redirect: true,
+      callbackUrl: '/',
+      redirect: false,
     })
+    // NextAuth يرجع رابط التحويل عند redirect:false – نفذه يدويًا
+    if (result?.url) {
+      window.location.assign(result.url)
+    }
     return result
   } catch (error) {
     console.error('Google sign in error:', error)
@@ -15,12 +19,15 @@ export const signInWithGoogle = async (opts?: { callbackUrl?: string }) => {
   }
 }
 
-export const signInWithFacebook = async (opts?: { callbackUrl?: string }) => {
+export const signInWithFacebook = async () => {
   try {
     const result = await signIn('facebook', {
-      callbackUrl: opts?.callbackUrl ?? '/',
-      redirect: true,
+      callbackUrl: '/',
+      redirect: false,
     })
+    if (result?.url) {
+      window.location.assign(result.url)
+    }
     return result
   } catch (error) {
     console.error('Facebook sign in error:', error)

@@ -102,6 +102,7 @@ export default function SignInPage() {
   
   const router = useRouter()
   const searchParams = useSearchParams()
+  const errorParam = searchParams.get('error')
 
   // Real-time validation
   useEffect(() => {
@@ -117,6 +118,19 @@ export default function SignInPage() {
     
     setFieldErrors(errors)
   }, [identifier, password, touchedFields])
+
+  // Show NextAuth OAuth errors if any
+  useEffect(() => {
+    if (!errorParam) return
+    const map: Record<string, string> = {
+      OAuthAccountNotLinked: 'هذا البريد مرتبط بمزوّد آخر. الرجاء تسجيل الدخول بالمزوّد المرتبط أو ربط الحساب.',
+      OAuthCallback: 'فشل العودة من مزوّد الهوية. تأكد من إعداد رابط العودة (Redirect URI).',
+      Configuration: 'تهيئة OAuth غير صحيحة. تحقق من مفاتيح العميل وروابط العودة.',
+      AccessDenied: 'تم رفض الوصول من مزوّد الهوية.',
+      Default: 'حدث خطأ أثناء تسجيل الدخول عبر المزوّد. حاول مجددًا.'
+    }
+    setError(map[errorParam] || map.Default)
+  }, [errorParam])
 
   const handleFieldTouch = (field: 'identifier' | 'password') => {
     setTouchedFields(prev => ({ ...prev, [field]: true }))
@@ -174,11 +188,11 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true)
-      const result = await signInWithGoogle()
+    const redirectPath = searchParams.get('redirect') || '/'
+    const result = await signInWithGoogle({ callbackUrl: redirectPath })
       if (result?.ok) {
         setIsSuccess(true)
         setTimeout(() => {
-          const redirectPath = searchParams.get('redirect') || '/'
           router.push(redirectPath)
         }, 1000)
       }
@@ -193,11 +207,11 @@ export default function SignInPage() {
   const handleFacebookSignIn = async () => {
     try {
       setIsLoading(true)
-      const result = await signInWithFacebook()
+    const redirectPath = searchParams.get('redirect') || '/'
+    const result = await signInWithFacebook({ callbackUrl: redirectPath })
       if (result?.ok) {
         setIsSuccess(true)
         setTimeout(() => {
-          const redirectPath = searchParams.get('redirect') || '/'
           router.push(redirectPath)
         }, 1000)
       }

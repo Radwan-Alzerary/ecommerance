@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from 'next/link'
 import { useLanguage } from '../contexts/LanguageContext'
 import { buildAssetUrl } from '@/lib/apiUrl'
+import { useFavorites } from '@/contexts/FavoritesContext'
 
 // Simplified translations
 const translations = {
@@ -72,6 +73,9 @@ export default function ProductProfile({ product }: ProductProfileProps) {
   const [quantity, setQuantity] = useState(1)
   const [isAddingToCart, setIsAddingToCart] = useState(false)
   const { addToCart } = useCart()
+  const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites()
+  const pid = (product?._id || product?.id || '') as string
+  const isFav = pid ? isFavorite(pid) : false
 
   const handleAddToCart = async () => {
     if (!product) return
@@ -86,6 +90,33 @@ export default function ProductProfile({ product }: ProductProfileProps) {
       console.error('Error adding to cart:', error)
     } finally {
       setIsAddingToCart(false)
+    }
+  }
+
+  const handleToggleFavorite = () => {
+    if (!pid) return
+    try {
+      if (isFav) removeFromFavorites(pid)
+      else addToFavorites(product)
+    } catch (e) {
+      console.error('Toggle favorite failed:', e)
+    }
+  }
+
+  const handleShare = async () => {
+    const url = typeof window !== 'undefined' ? window.location.href : ''
+    const title = product?.name || 'Product'
+    const text = product?.description || 'Check this product'
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url })
+      } else if (navigator.clipboard && url) {
+        await navigator.clipboard.writeText(url)
+        // Optional minimal feedback without extra libs
+        alert('Link copied to clipboard')
+      }
+    } catch (e) {
+      console.error('Share failed:', e)
     }
   }
 
@@ -312,11 +343,25 @@ export default function ProductProfile({ product }: ProductProfileProps) {
                 </Button>
                 
                 <div className="flex space-x-3">
-                  <Button variant="outline" size="icon" className="h-14 w-14">
-                    <Heart className="h-6 w-6" />
+                  <Button
+                    variant={isFav ? 'default' : 'outline'}
+                    size="icon"
+                    className={`h-14 w-14 ${isFav ? 'bg-red-500 hover:bg-red-600 text-white' : ''}`}
+                    onClick={handleToggleFavorite}
+                    aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                    title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart className={`h-6 w-6 ${isFav ? 'fill-white text-white' : ''}`} />
                   </Button>
-                  
-                  <Button variant="outline" size="icon" className="h-14 w-14">
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-14 w-14"
+                    onClick={handleShare}
+                    aria-label="Share product"
+                    title="Share product"
+                  >
                     <Share2 className="h-6 w-6" />
                   </Button>
                 </div>

@@ -102,9 +102,9 @@ export default function ProductCard(props: ProductCardProps) {
   return (
     <motion.article
       ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
       onMouseMove={handleMouseMove}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={handleMouseLeave}
@@ -114,7 +114,7 @@ export default function ProductCard(props: ProductCardProps) {
 
       {/* Image container */}
       <Link href={`/products/${_id}`} className="relative block h-[240px] overflow-hidden group/image flex-shrink-0">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+  <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent z-10" />
         <div className="relative h-full w-full">
           <Image
             src={image?.url ? buildAssetUrl(image.url) : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'}
@@ -134,10 +134,7 @@ export default function ProductCard(props: ProductCardProps) {
             </div>
           )}
         </div>
-        <div
-          className="absolute bottom-3 right-3 flex flex-col gap-2 transition-opacity duration-150"
-          style={{ opacity: isHovered ? 1 : 0 }}
-        >
+  <div className="absolute bottom-3 right-3 flex flex-col gap-2 opacity-100">
           <Button
             variant="ghost"
             size="icon"

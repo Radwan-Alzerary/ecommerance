@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import useIsDesktop from '@/utils/useIsDesktop'
 
@@ -161,6 +161,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
 
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(products)
   const [searchTerm, setSearchTerm] = useState('')
+  const deferredSearch = useDeferredValue(searchTerm)
   // تحديث: استخدام maxPrice الفعلي بدلاً من القيمة الثابتة
   const [priceRange, setPriceRange] = useState<[number, number]>([0, filterOptions.maxPrice])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -189,16 +190,16 @@ export default function ProductGrid({ products }: ProductGridProps) {
       filterAndSortProducts()
     }, 300)
     return () => clearTimeout(timeoutId)
-  }, [products, searchTerm, priceRange, selectedCategories, selectedColors, selectedSizes, minRating, sortBy])
+  }, [products, deferredSearch, priceRange, selectedCategories, selectedColors, selectedSizes, minRating, sortBy])
 
   const filterAndSortProducts = () => {
     setIsLoading(true)
     
     let filtered = products.filter(product => {
       const ratingValue = getNumericRating(product.rating)
-      const matchesSearch = !searchTerm || 
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesSearch = !deferredSearch || 
+        product.name.toLowerCase().includes(deferredSearch.toLowerCase()) ||
+        product.description?.toLowerCase().includes(deferredSearch.toLowerCase())
       
       const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
       
@@ -787,33 +788,24 @@ export default function ProductGrid({ products }: ProductGridProps) {
             </AnimatePresence>
 
             {/* Products Grid */}
-            <AnimatePresence mode="wait">
-              {!isLoading && (
-                <motion.div
-                  key={`${searchTerm}-${selectedCategories.join('-')}-${selectedColors.join('-')}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.4 }}
-                  className={`grid gap-6 ${
-                    viewMode === 'grid' 
-                      ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
-                      : 'grid-cols-1'
-                  }`}
-                >
-                  {filteredProducts.map((product, index) => (
-                    <motion.div
-                      key={product._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05, duration: 0.4 }}
-                    >
-                      <ProductCard {...product} />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {!isLoading && (
+              <motion.div
+                initial={{ opacity: 1, y: 0 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className={`grid gap-6 ${
+                  viewMode === 'grid' 
+                    ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+                    : 'grid-cols-1'
+                }`}
+              >
+                {filteredProducts.map((product) => (
+                  <div key={product._id}>
+                    <ProductCard {...product} />
+                  </div>
+                ))}
+              </motion.div>
+            )}
 
             {/* Empty State */}
             {!isLoading && filteredProducts.length === 0 && (

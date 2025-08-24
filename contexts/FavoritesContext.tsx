@@ -27,6 +27,8 @@ interface FavoritesProviderProps {
 export function FavoritesProvider({ children }: FavoritesProviderProps) {
   const [favorites, setFavorites] = useState<Product[]>([])
 
+  const getPid = (p: Pick<Product, '_id' | 'id'>): string => (p?._id || p?.id || '')
+
   useEffect(() => {
     const savedFavorites = localStorage.getItem('favorites')
     if (savedFavorites) {
@@ -40,7 +42,9 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
 
   const addToFavorites = (product: Product) => {
     setFavorites((prev) => {
-      if (!prev.find((p) => p.id === product.id)) {
+      const pid = getPid(product)
+      if (!pid) return prev
+      if (!prev.find((p) => getPid(p) === pid)) {
         return [...prev, product]
       }
       return prev
@@ -48,11 +52,11 @@ export function FavoritesProvider({ children }: FavoritesProviderProps) {
   }
 
   const removeFromFavorites = (productId: string) => {
-    setFavorites((prev) => prev.filter((product) => product.id !== productId))
+    setFavorites((prev) => prev.filter((product) => getPid(product) !== productId))
   }
 
   const isFavorite = (productId: string) => {
-    return favorites.some((product) => product.id === productId)
+    return favorites.some((product) => getPid(product) === productId)
   }
 
   return (

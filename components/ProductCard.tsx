@@ -36,7 +36,8 @@ export default function ProductCard(props: ProductCardProps) {
   const { language } = useLanguage()
   const t = (key: string) => (translations as any)[language]?.[key] || key
 
-  const isFav = isFavorite(_id)
+  const pid = _id || id || ''
+  const isFav = isFavorite(pid)
   const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
@@ -49,8 +50,9 @@ export default function ProductCard(props: ProductCardProps) {
   const toggleFav = (e: React.MouseEvent) => {
     e.stopPropagation()
     e.preventDefault()
+    if (!pid) return
     if (isFav) {
-      removeFromFavorites(_id)
+      removeFromFavorites(pid)
     } else {
       addToFavorites(props)
     }
@@ -113,7 +115,7 @@ export default function ProductCard(props: ProductCardProps) {
       {/* Simplified: removed gradient & floating sparkle for performance */}
 
       {/* Image container */}
-      <Link href={`/products/${_id}`} className="relative block h-[240px] overflow-hidden group/image flex-shrink-0">
+  <Link href={`/products/${pid}`} className="relative block h-[240px] overflow-hidden group/image flex-shrink-0">
   <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent z-10" />
         <div className="relative h-full w-full">
           <Image
@@ -141,7 +143,7 @@ export default function ProductCard(props: ProductCardProps) {
             className="h-10 w-10 bg-white/90 backdrop-blur-md hover:bg-white border border-white/20 shadow-sm"
             asChild
           >
-            <Link href={`/products/${_id}`} className="pointer-events-auto"><Eye className="h-4 w-4" /></Link>
+            <Link href={`/products/${pid}`} className="pointer-events-auto"><Eye className="h-4 w-4" /></Link>
           </Button>
           <Button
             variant="ghost"
@@ -169,7 +171,7 @@ export default function ProductCard(props: ProductCardProps) {
       {/* Enhanced info section */}
       <div className="flex flex-col h-[180px] p-4 space-y-2">
         {/* Product name and category - Fixed height */}
-        <Link href={`/products/${_id}`} className="block group/link">
+  <Link href={`/products/${pid}`} className="block group/link">
           <motion.div
             className="h-[60px] flex flex-col justify-start"
             whileHover={{ x: 2 }}

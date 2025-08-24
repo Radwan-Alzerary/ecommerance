@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { signOut } from 'next-auth/react'
@@ -92,6 +93,8 @@ export default function Header() {
   const [categories, setCategories] = useState<any[]>([])
   const [notifications] = useState(3) // Mock notifications
   const headerRef = useRef(null)
+  const [panelTop, setPanelTop] = useState<number>(80)
+  const [isClient, setIsClient] = useState(false)
 
   const { cart } = useCart()
   const { language, setLanguage } = useLanguage()
@@ -116,6 +119,19 @@ export default function Header() {
   const [allProducts, setAllProducts] = useState<Product[]>([])
 
   useEffect(() => {
+    setIsClient(true)
+    const calcTop = () => {
+      const rect = (headerRef.current as any)?.getBoundingClientRect?.()
+      const top = (rect?.bottom ?? 64) + 16 // header bottom + gap
+      setPanelTop(top)
+    }
+    calcTop()
+    window.addEventListener('resize', calcTop)
+    window.addEventListener('scroll', calcTop)
+    return () => {
+      window.removeEventListener('resize', calcTop)
+      window.removeEventListener('scroll', calcTop)
+    }
   const fetchData = async () => {
       try {
         const data = await fetchCategories()
@@ -314,7 +330,7 @@ export default function Header() {
                 </Button>
 
                 <AnimatePresence>
-                  {isSearchOpen && (
+                  {isSearchOpen && isClient && createPortal(
                     <>
                       {/* Backdrop */}
                       <motion.div
@@ -322,7 +338,7 @@ export default function Header() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsSearchOpen(false)}
-                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
                       />
 
                       {/* Search Panel */}
@@ -330,7 +346,8 @@ export default function Header() {
                         initial={{ opacity: 0, scale: 0.95, y: -10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        className="absolute top-full right-0 mt-4 w-96 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 z-50 overflow-hidden"
+                        className="fixed w-96 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 z-[70] overflow-hidden"
+                        style={{ top: panelTop, [language === 'en' ? 'right' : 'left']: 24 } as any}
                       >
                         <div className="p-6">
                           <div className="relative">
@@ -382,7 +399,8 @@ export default function Header() {
                           </div>
                         </div>
                       </motion.div>
-                    </>
+                    </>,
+                    document.body
                   )}
                 </AnimatePresence>
               </div>
@@ -519,7 +537,7 @@ export default function Header() {
                 </Button>
 
                 <AnimatePresence>
-                  {isCartOpen && (
+                  {isCartOpen && isClient && createPortal(
                     <>
                       {/* Backdrop */}
                       <motion.div
@@ -527,7 +545,7 @@ export default function Header() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsCartOpen(false)}
-                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60]"
                       />
 
                       {/* Cart Panel */}
@@ -535,11 +553,13 @@ export default function Header() {
                         initial={{ opacity: 0, x: 20, y: -10 }}
                         animate={{ opacity: 1, x: 0, y: 0 }}
                         exit={{ opacity: 0, x: 20, y: -10 }}
-                        className={`absolute mt-4 z-50 ${language === "en" ? "right-0" : "left-0"}`}
+                        className="fixed z-[70]"
+                        style={{ top: panelTop, [language === 'en' ? 'right' : 'left']: 24 } as any}
                       >
                         <MiniCart onClose={() => setIsCartOpen(false)} />
                       </motion.div>
-                    </>
+                    </>,
+                    document.body
                   )}
                 </AnimatePresence>
               </div>

@@ -359,15 +359,6 @@ export default function HeroSection() {
                       <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    size="lg"
-                    className="group border-white/30 text-white hover:bg-white/10 backdrop-blur-sm px-8 py-6 text-lg rounded-2xl transition-all duration-300"
-                  >
-                    <Play className="w-5 h-5 mr-2 transition-transform group-hover:scale-110" />
-                    Watch Story
-                  </Button>
                 </motion.div>
               </motion.div>
             </AnimatePresence>

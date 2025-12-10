@@ -286,9 +286,17 @@ export async function getCustomerProfile(): Promise<Customer | null> {
 
 export async function getAllProduct(): Promise<Product[]> {
     try {
+        console.log("📡 API Request: GET /online/food/getall");
+        console.log("📡 Base URL:", api.defaults.baseURL);
         const response = await api.get<Product[]>("/online/food/getall");
+        console.log("✅ API Response received:", response.status);
+        console.log("✅ Response data type:", typeof response.data);
+        console.log("✅ Is array:", Array.isArray(response.data));
+        console.log("✅ Data length:", response.data?.length);
         return response.data;
     } catch (error: any) {
+        console.error("❌ API Error:", error.message);
+        console.error("❌ Error response:", error.response?.data);
         // Throwing original error structure
         throw new Error(error.response?.data?.message || "Failed to fetch products"); // Adjusted generic message slightly
     }

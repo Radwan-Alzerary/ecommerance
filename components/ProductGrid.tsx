@@ -154,7 +154,10 @@ export default function ProductGrid({ products }: ProductGridProps) {
     const categories = Array.from(new Set(categoryNames))
   const colors = Array.from(new Set(products.flatMap(product => product.colors || [])))
   const sizes = Array.from(new Set(products.flatMap(product => product.sizes || [])))
-  const maxPrice = products.length ? Math.max(...products.map(p => p.price || 0)) : 0
+  const maxPrice = products.length ? Math.max(...products.map(p => Number(p.price) || 0)) : 0
+
+    console.log("📊 ProductGrid - Products received:", products.length);
+    console.log("💰 ProductGrid - Max price calculated:", maxPrice);
 
     return { categories, colors, sizes, maxPrice }
   }, [products])
@@ -195,13 +198,24 @@ export default function ProductGrid({ products }: ProductGridProps) {
   const filterAndSortProducts = () => {
     setIsLoading(true)
     
+    console.log("🔍 Filtering products...");
+    console.log("  Total products:", products.length);
+    console.log("  Price range:", priceRange);
+    console.log("  Filter options maxPrice:", filterOptions.maxPrice);
+    
     let filtered = products.filter(product => {
       const ratingValue = getNumericRating(product.rating)
       const matchesSearch = !deferredSearch || 
         product.name.toLowerCase().includes(deferredSearch.toLowerCase()) ||
         product.description?.toLowerCase().includes(deferredSearch.toLowerCase())
       
-      const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
+      const productPrice = Number(product.price) || 0
+      // Handle case where priceRange might be stale (0) when products first load
+      // If both priceRange[1] and filterOptions.maxPrice are 0, don't filter by price yet
+      const shouldFilterByPrice = priceRange[1] > 0 || filterOptions.maxPrice > 0
+      const effectiveMaxPrice = priceRange[1] > 0 ? priceRange[1] : filterOptions.maxPrice
+      
+      const matchesPrice = !shouldFilterByPrice || (productPrice >= priceRange[0] && productPrice <= effectiveMaxPrice)
       
       const matchesCategory = selectedCategories.length === 0 || 
         selectedCategories.includes(product.category?.name)
@@ -214,8 +228,30 @@ export default function ProductGrid({ products }: ProductGridProps) {
       
       const matchesRating = !minRating || ratingValue >= minRating
       
-      return matchesSearch && matchesPrice && matchesCategory && matchesColor && matchesSize && matchesRating
+      const result = matchesSearch && matchesPrice && matchesCategory && matchesColor && matchesSize && matchesRating
+      
+      // Log first product details for debugging
+      if (products.indexOf(product) === 0) {
+        console.log("  First product check:", {
+          name: product.name,
+          price: productPrice,
+          priceRange,
+          shouldFilterByPrice,
+          effectiveMaxPrice,
+          matchesSearch,
+          matchesPrice,
+          matchesCategory,
+          matchesColor,
+          matchesSize,
+          matchesRating,
+          result
+        });
+      }
+      
+      return result
     })
+    
+    console.log("  Filtered products:", filtered.length);
 
     // Apply sorting
     filtered.sort((a, b) => {
@@ -223,9 +259,9 @@ export default function ProductGrid({ products }: ProductGridProps) {
         case 'name':
           return a.name.localeCompare(b.name)
         case 'price-low':
-          return (a.price || 0) - (b.price || 0)
+          return (Number(a.price) || 0) - (Number(b.price) || 0)
         case 'price-high':
-          return (b.price || 0) - (a.price || 0)
+          return (Number(b.price) || 0) - (Number(a.price) || 0)
         case 'rating':
           return getNumericRating(b.rating) - getNumericRating(a.rating)
         case 'newest':

@@ -62,6 +62,10 @@ export const AuthProvider = ({
         try {
             const currentUser = await getCurrentUser();
             setUser(currentUser);
+            // إطلاق حدث مخصص لإعلام جميع المكونات بتحديث حالة المصادقة
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('authStateChanged', { detail: currentUser }));
+            }
             // console.log("AuthProvider: User state set:", currentUser);
         } catch (err: any) {
             console.error("AuthProvider: Error during checkAuthState:", err);
@@ -74,6 +78,19 @@ export const AuthProvider = ({
 
     useEffect(() => {
         checkAuthState();
+        
+        // الاستماع لأحداث تسجيل الدخول
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === 'isAuthenticated' || e.key === 'authToken') {
+                checkAuthState();
+            }
+        };
+        
+        window.addEventListener('storage', handleStorageChange);
+        
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+        };
     }, [checkAuthState]);
 
     const signIn = useCallback(async (credentials: { identifier: string, password: string }): Promise<Customer | null> => {
@@ -137,17 +154,22 @@ export const AuthProvider = ({
 
     const isAuthenticated = useMemo(() => !!user, [user]); // Simpler: user exists
 
-    // Effect to handle redirection if not authenticated
+    // قائمة الصفحات المحمية التي تتطلب تسجيل دخول
+    const protectedPaths = ['/checkout', '/orders', '/profile', '/favorites'];
+    const isProtectedPath = protectedPaths.some(path => pathname?.startsWith(path));
+
+    // Effect to handle redirection if not authenticated - only for protected paths
     useEffect(() => {
         // Don't redirect if:
         // 1. We are still loading the auth state.
         // 2. The user is authenticated.
-        // 3. We are already on the login page (to prevent redirect loops if login page is somehow included).
-        if (!isLoading && !isAuthenticated && pathname !== loginPath) {
-            console.log(`AuthProvider: Not authenticated or loading. Current path: ${pathname}. Redirecting to ${loginPath}`);
-            router.push(loginPath);
+        // 3. We are already on the login page.
+        // 4. The current path is NOT a protected path.
+        if (!isLoading && !isAuthenticated && pathname !== loginPath && isProtectedPath) {
+            console.log(`AuthProvider: Not authenticated. Redirecting from protected path ${pathname} to ${loginPath}`);
+            router.push(`${loginPath}?redirect=${encodeURIComponent(pathname || '/')}`);
         }
-    }, [isLoading, isAuthenticated, router, loginPath, pathname]);
+    }, [isLoading, isAuthenticated, router, loginPath, pathname, isProtectedPath]);
 
     const value = useMemo(() => ({
         user,
@@ -161,23 +183,17 @@ export const AuthProvider = ({
     }), [user, isLoading, error, isAuthenticated, signIn, signOut, signUp, checkAuthState]);
 
     // Conditional rendering based on auth state
-    if (isLoading) {
-        return <>{loadingComponent}</>; // Show loading component while checking auth
+    // عرض loading فقط أثناء التحميل الأولي للصفحات المحمية
+    if (isLoading && isProtectedPath) {
+        return <>{loadingComponent}</>;
     }
 
-    // If not authenticated and not on the login page,
-    // the useEffect above will trigger a redirect.
-    // Render children only if authenticated.
-    // If not authenticated, and we are on a protected route,
-    // this can render null or a minimal placeholder until redirect takes effect.
-    if (!isAuthenticated && pathname !== loginPath) {
-        // This content might be briefly visible before the redirect from useEffect kicks in.
-        // Or, you can return the loadingComponent again, or null.
-        // console.log("AuthProvider: Waiting for redirect, not rendering children.");
-        return <>{loadingComponent}</>; // Or null, or a "Redirecting..." message
+    // إذا كانت صفحة محمية وغير مصادق عليه، عرض loading أثناء إعادة التوجيه
+    if (!isAuthenticated && isProtectedPath && pathname !== loginPath) {
+        return <>{loadingComponent}</>;
     }
 
-    // If authenticated, or if on the login page itself (allowing login page to render)
+    // عرض جميع الصفحات الأخرى بشكل طبيعي
     return (
         <AuthContext.Provider value={value}>
             {children}
@@ -188,7 +204,17 @@ export const AuthProvider = ({
 export const useAuth = (): AuthContextType => {
     const context = useContext(AuthContext);
     if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
+        // إرجاع قيم افتراضية بدلاً من رمي خطأ للسماح بالاستخدام خارج Provider
+        return {
+            user: null,
+            isLoading: false,
+            error: null,
+            isAuthenticated: false,
+            signIn: async () => null,
+            signOut: async () => {},
+            signUp: async () => null,
+            checkAuthState: async () => {}
+        };
     }
     return context;
 };

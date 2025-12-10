@@ -112,9 +112,51 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [state, dispatch] = useReducer(cartReducer, { items: [] }, initCartState);
 
+  // حفظ السلة في localStorage عند التغيير
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(state.items));
+    // إطلاق حدث لإعلام المكونات الأخرى
+    window.dispatchEvent(new CustomEvent('cartUpdated', { detail: state.items }));
   }, [state.items]);
+
+  // الاستماع لتغييرات localStorage من نوافذ/تابات أخرى
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'cart' && e.newValue) {
+        try {
+          const newItems = JSON.parse(e.newValue);
+          if (Array.isArray(newItems)) {
+            dispatch({ type: 'SET_CART', payload: newItems });
+          }
+        } catch (error) {
+          console.error('Error parsing cart from storage event:', error);
+        }
+      }
+    };
+
+    const handleCartUpdate = () => {
+      // إعادة قراءة السلة من localStorage
+      const saved = localStorage.getItem('cart');
+      if (saved) {
+        try {
+          const parsedItems = JSON.parse(saved);
+          if (Array.isArray(parsedItems)) {
+            dispatch({ type: 'SET_CART', payload: parsedItems });
+          }
+        } catch (error) {
+          console.error('Error parsing cart:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, []);
 
   const addToCart = (item: CartItem) => {
     dispatch({ type: 'ADD_TO_CART', payload: item });

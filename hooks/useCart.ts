@@ -45,24 +45,84 @@ export function useCart() {
     // Dependency array: Run whenever 'cart' state changes
   }, [cart]);
 
+  // الاستماع لتغييرات السلة من مصادر خارجية
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'cart' && e.newValue) {
+        try {
+          const newCart = JSON.parse(e.newValue);
+          if (Array.isArray(newCart)) {
+            setCart(newCart);
+          }
+        } catch (error) {
+          console.error('Error parsing cart from storage event:', error);
+        }
+      }
+    };
+
+    const handleCartUpdate = () => {
+      const saved = localStorage.getItem('cart');
+      if (saved) {
+        try {
+          const parsedCart = JSON.parse(saved);
+          if (Array.isArray(parsedCart)) {
+            setCart(parsedCart);
+          }
+        } catch (error) {
+          console.error('Error parsing cart:', error);
+        }
+      } else {
+        setCart([]);
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('cartUpdated', handleCartUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
+  }, []);
+
   // --- Cart manipulation functions (no changes needed here) ---
 
   const addToCart = (item: CartItem) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((i) => i.id === item.id);
+      let newCart;
       if (existingItem) {
         // Increase quantity if item exists
-        return prevCart.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i // Use item.quantity for flexibility
+        newCart = prevCart.map((i) =>
+          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
         );
+      } else {
+        // Add new item if it doesn't exist
+        newCart = [...prevCart, { ...item, quantity: item.quantity > 0 ? item.quantity : 1 }];
       }
-      // Add new item if it doesn't exist (ensure quantity is at least 1)
-      return [...prevCart, { ...item, quantity: item.quantity > 0 ? item.quantity : 1 }];
+      
+      // إطلاق حدث التحديث
+      if (typeof window !== 'undefined') {
+        setTimeout(() => window.dispatchEvent(new CustomEvent('cartUpdated')), 0);
+      }
+      
+      return newCart;
     });
   };
 
   const removeFromCart = (id: string) => {
-    setCart((prevCart) => prevCart.filter((item) => item.id !== id));
+    setCart((prevCart) => {
+      const newCart = prevCart.filter((item) => item.id !== id);
+      
+      // إطلاق حدث التحديث
+      if (typeof window !== 'undefined') {
+        setTimeout(() => window.dispatchEvent(new CustomEvent('cartUpdated')), 0);
+      }
+      
+      return newCart;
+    });
   };
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -71,15 +131,32 @@ export function useCart() {
       removeFromCart(id); // Remove item if quantity is zero or less
       return;
     }
-    setCart((prevCart) =>
-      prevCart.map((item) =>
+    setCart((prevCart) => {
+      const newCart = prevCart.map((item) =>
         item.id === id ? { ...item, quantity: quantity } : item
-      )
-    );
+      );
+      
+      // إطلاق حدث التحديث
+      if (typeof window !== 'undefined') {
+        setTimeout(() => window.dispatchEvent(new CustomEvent('cartUpdated')), 0);
+      }
+      
+      return newCart;
+    });
   };
 
    const clearCart = () => {
     setCart([]); // Clears the cart state, which will trigger the useEffect to update localStorage
+    
+    // إطلاق حدث لإعلام جميع المكونات
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'cart',
+        newValue: JSON.stringify([]),
+        url: window.location.href
+      }));
+    }
   };
 
   // Optional: Calculate total items/price

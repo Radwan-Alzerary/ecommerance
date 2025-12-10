@@ -43,13 +43,40 @@ const CartItemComponent = ({ item, onUpdateQuantity, onRemove, language, t }) =>
       <div className="flex gap-4 p-4 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-200/50 dark:border-gray-700/50 hover:bg-white/80 dark:hover:bg-gray-700/80 transition-all duration-300 hover:shadow-lg">
         {/* Product Image */}
         <div className="relative w-20 h-20 rounded-xl overflow-hidden group-hover:scale-105 transition-transform duration-300">
-          <Image
-            src={item.image?.url ? buildAssetUrl(item.image.url) : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80'}
-            alt={item.name}
-            fill
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {item.image?.url ? (
+            <>
+              <Image
+                src={buildAssetUrl(item.image.url)}
+                alt={item.name}
+                fill
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </>
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-100 via-zinc-100 to-gray-100 dark:from-slate-900 dark:via-zinc-900 dark:to-gray-900 overflow-hidden">
+              <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08]" style={{
+                backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 0.5px, transparent 0)',
+                backgroundSize: '16px 16px'
+              }}></div>
+              
+              <div className="relative bg-white/70 dark:bg-slate-800/70 backdrop-blur-md p-3 rounded-lg border border-slate-200/60 dark:border-slate-700/60 shadow-sm">
+                <svg 
+                  className="w-7 h-7 text-slate-400 dark:text-slate-600" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  strokeWidth={1}
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
+                  />
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Product Details */}

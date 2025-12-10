@@ -150,6 +150,8 @@ export default function CheckoutPage() {
     landmark: '',
     notes: '',
     shippingType: 'external' as 'external' | 'internal',
+    latitude: null as number | null,
+    longitude: null as number | null,
   })
 
   const [countriesData, setCountriesData] = useState<CountryData[]>([])
@@ -178,6 +180,11 @@ export default function CheckoutPage() {
     shippingFeeForPayload: 0,
     discountAmountForPayload: 0,
   });
+
+  // حالات GPS والخريطة
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(false);
 
   const localStorageKey = useMemo(() => getLocalStorageKey(user?.id), [user?.id]);
 
@@ -351,6 +358,79 @@ export default function CheckoutPage() {
     setPromoFeedback(customMessage || "تمت إزالة رمز الخصم.");
   };
 
+  // دالة للحصول على الموقع الحالي
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('المتصفح لا يدعم تحديد الموقع الجغرافي');
+      return;
+    }
+
+    setIsGettingLocation(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        setShippingInfo(prev => ({
+          ...prev,
+          latitude,
+          longitude
+        }));
+
+        // محاولة الحصول على العنوان من الإحداثيات باستخدام Reverse Geocoding
+        try {
+          // استخدام Nominatim API (مجاني)
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ar`
+          );
+          const data = await response.json();
+          
+          if (data.address) {
+            const address = [
+              data.address.road,
+              data.address.neighbourhood,
+              data.address.suburb,
+              data.address.city || data.address.town || data.address.village
+            ].filter(Boolean).join(', ');
+
+            setShippingInfo(prev => ({
+              ...prev,
+              address: address || prev.address,
+              city: data.address.city || data.address.town || data.address.village || prev.city,
+            }));
+          }
+        } catch (error) {
+          console.error('Error getting address:', error);
+        }
+
+        setIsGettingLocation(false);
+        setShowMap(true);
+      },
+      (error) => {
+        setIsGettingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('تم رفض الإذن للوصول إلى موقعك. يرجى السماح بالوصول في إعدادات المتصفح.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('معلومات الموقع غير متاحة.');
+            break;
+          case error.TIMEOUT:
+            setLocationError('انتهت مهلة طلب تحديد الموقع.');
+            break;
+          default:
+            setLocationError('حدث خطأ غير معروف أثناء تحديد الموقع.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !user._id) {
@@ -405,6 +485,12 @@ export default function CheckoutPage() {
           city: shippingInfo.city,
           country: shippingInfo.country,
           landmark: shippingInfo.landmark,
+        }),
+        ...(shippingInfo.latitude && shippingInfo.longitude && {
+          location: {
+            latitude: shippingInfo.latitude,
+            longitude: shippingInfo.longitude
+          }
         })
       },
       items: cart.map(item => ({
@@ -424,7 +510,18 @@ export default function CheckoutPage() {
     try {
       const createdOrder = await submitOrder(orderPayload);
       setOrderSuccess(true);
+      
+      // تفريغ السلة
       clearCart();
+      
+      // إطلاق حدث مخصص لإعلام جميع المكونات بتحديث السلة
+      window.dispatchEvent(new CustomEvent('cartUpdated'));
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'cart',
+        newValue: JSON.stringify([]),
+        url: window.location.href
+      }));
+      
       handleRemovePromoCode();
       alert(`تم تقديم طلبك بنجاح! رقم الطلب: ${createdOrder.orderNumber || createdOrder.id || 'N/A'}`);
     } catch (error: any) {
@@ -505,7 +602,14 @@ export default function CheckoutPage() {
               شكراً لك على التسوق معنا. ستتلقى تأكيدًا بالبريد الإلكتروني قريبًا.
             </p>
             <Button 
-              onClick={() => router.push('/')}
+              onClick={() => {
+                try {
+                  router.push('/');
+                } catch (error) {
+                  // استخدام window.location كبديل
+                  window.location.href = '/';
+                }
+              }}
               className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white rounded-2xl px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <ArrowRight className="w-5 h-5 ml-2" />
@@ -763,10 +867,56 @@ export default function CheckoutPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.6 }}
+                        className="space-y-3"
                       >
-                        <Label htmlFor="address" className="block mb-2 font-semibold text-gray-900 dark:text-white">
-                          عنوان الشارع
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="address" className="font-semibold text-gray-900 dark:text-white">
+                            عنوان الشارع
+                          </Label>
+                          <Button
+                            type="button"
+                            onClick={handleGetCurrentLocation}
+                            disabled={isGettingLocation}
+                            className="h-9 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl text-sm font-medium shadow-md hover:shadow-lg transition-all duration-300"
+                          >
+                            {isGettingLocation ? (
+                              <>
+                                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                                جاري التحديد...
+                              </>
+                            ) : (
+                              <>
+                                <MapPin className="w-4 h-4 ml-2" />
+                                تحديد موقعي الحالي
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
+                        {locationError && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl"
+                          >
+                            <XCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                            <span className="text-sm text-red-700 dark:text-red-300">{locationError}</span>
+                          </motion.div>
+                        )}
+
+                        {shippingInfo.latitude && shippingInfo.longitude && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl"
+                          >
+                            <Check className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                            <span className="text-sm text-green-700 dark:text-green-300">
+                              تم تحديد الموقع: {shippingInfo.latitude.toFixed(6)}, {shippingInfo.longitude.toFixed(6)}
+                            </span>
+                          </motion.div>
+                        )}
+
                         <div className="relative">
                           <MapPin className="absolute right-3 top-3 h-5 w-5 text-gray-400" />
                           <Textarea 
@@ -779,6 +929,61 @@ export default function CheckoutPage() {
                             className="pr-10 bg-gray-50/80 dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 rounded-2xl text-right min-h-[80px]" 
                           />
                         </div>
+
+                        {/* عرض الخريطة */}
+                        <AnimatePresence>
+                          {showMap && shippingInfo.latitude && shippingInfo.longitude && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="overflow-hidden rounded-2xl border-2 border-gray-200 dark:border-gray-700 shadow-lg"
+                            >
+                              <div className="bg-white dark:bg-gray-800 p-4">
+                                <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    <h3 className="font-semibold text-gray-900 dark:text-white">موقعك على الخريطة</h3>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    onClick={() => setShowMap(false)}
+                                    variant="ghost"
+                                    className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                                  >
+                                    <XCircle className="w-5 h-5 text-gray-500" />
+                                  </Button>
+                                </div>
+                                <div className="relative w-full h-80 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden">
+                                  <iframe
+                                    width="100%"
+                                    height="100%"
+                                    frameBorder="0"
+                                    style={{ border: 0 }}
+                                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${shippingInfo.longitude - 0.01},${shippingInfo.latitude - 0.01},${shippingInfo.longitude + 0.01},${shippingInfo.latitude + 0.01}&layer=mapnik&marker=${shippingInfo.latitude},${shippingInfo.longitude}`}
+                                    allowFullScreen
+                                  />
+                                  <div className="absolute bottom-3 right-3 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                                      📍 {shippingInfo.latitude.toFixed(4)}, {shippingInfo.longitude.toFixed(4)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="mt-3 text-center">
+                                  <a
+                                    href={`https://www.google.com/maps?q=${shippingInfo.latitude},${shippingInfo.longitude}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                                  >
+                                    <MapPin className="w-4 h-4" />
+                                    فتح في خرائط Google
+                                  </a>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </motion.div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

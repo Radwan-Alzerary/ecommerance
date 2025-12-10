@@ -138,8 +138,25 @@ export default function CustomSection({ section }: CustomSectionProps) {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-400 text-xs">No Image</span>
+              <div className="w-full h-full bg-gradient-to-br from-slate-100 to-zinc-100 dark:from-slate-900 dark:to-zinc-900 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]" style={{
+                  backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, currentColor 10px, currentColor 11px)'
+                }}></div>
+                <div className="relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-700/60">
+                  <svg 
+                    className="w-8 h-8 text-slate-400 dark:text-slate-600 relative" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                    strokeWidth={1}
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
+                    />
+                  </svg>
+                </div>
               </div>
             )}
           </div>

@@ -27,19 +27,26 @@
 
 ### 3. تحديث ملف .env.local
 
+**ملاحظة مهمة:** يجب أن يكون البورت في `NEXTAUTH_URL` هو نفس البورت الذي يعمل عليه التطبيق (4066)
+
 ```env
 # NextAuth.js Configuration
 NEXTAUTH_URL=http://localhost:4066
 NEXTAUTH_SECRET=rYgr+UTC9/tC/vUbcmH6mAlct/GIYU5cfLAL11ZCa1s=
 
-# Google OAuth
+# Google OAuth - استبدل هذه القيم بالقيم الحقيقية من Google Cloud Console
 GOOGLE_CLIENT_ID=your-actual-google-client-id
 GOOGLE_CLIENT_SECRET=your-actual-google-client-secret
 
-# Facebook OAuth  
+# Facebook OAuth - استبدل هذه القيم بالقيم الحقيقية من Facebook Developers
 FACEBOOK_CLIENT_ID=your-actual-facebook-app-id
 FACEBOOK_CLIENT_SECRET=your-actual-facebook-app-secret
 ```
+
+**تحقق من:**
+- ✅ البورت صحيح (4066)
+- ✅ استبدلت القيم الافتراضية بالقيم الحقيقية من Google و Facebook
+- ✅ Redirect URIs في Google و Facebook تطابق `http://localhost:4066/api/auth/callback/google` و `http://localhost:4066/api/auth/callback/facebook`
 
 ### 4. إعادة تشغيل التطبيق
 

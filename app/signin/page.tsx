@@ -151,17 +151,29 @@ export default function SignInPage() {
       const user = await signInUser({ identifier, password })
       console.log('تم تسجيل الدخول بنجاح:', user)
       
-      setIsSuccess(true)
+      // حفظ حالة تسجيل الدخول
+      localStorage.setItem('isAuthenticated', 'true')
+      localStorage.setItem('authProvider', 'local')
       
       // Store remember me preference
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
       }
+      
+      // إطلاق حدث مخصص لتحديث جميع المكونات
+      window.dispatchEvent(new CustomEvent('authStateChanged', { detail: user }))
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'isAuthenticated',
+        newValue: 'true',
+        url: window.location.href
+      }))
+      
+      setIsSuccess(true)
 
       setTimeout(() => {
         const redirectPath = searchParams.get('redirect') || '/'
         router.push(redirectPath)
-      }, 2000)
+      }, 1500)
 
     } catch (err: any) {
       console.error('فشل تسجيل الدخول:', err)
@@ -174,17 +186,35 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true)
+      setError('')
       const result = await signInWithGoogle()
-      if (result?.ok) {
+      
+      // في حالة NextAuth، result?.ok يعني نجاح المصادقة
+      if (result?.ok || result?.url) {
+        // حفظ حالة تسجيل الدخول
+        localStorage.setItem('isAuthenticated', 'true')
+        localStorage.setItem('authProvider', 'google')
+        
+        // إطلاق حدث مخصص لتحديث جميع المكونات
+        window.dispatchEvent(new CustomEvent('authStateChanged', { detail: { provider: 'google' } }))
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'isAuthenticated',
+          newValue: 'true',
+          url: window.location.href
+        }))
+        
         setIsSuccess(true)
+        
         setTimeout(() => {
           const redirectPath = searchParams.get('redirect') || '/'
           router.push(redirectPath)
-        }, 1000)
+        }, 1500)
+      } else if (result?.error) {
+        setError('فشل تسجيل الدخول عبر Google. يرجى المحاولة مرة أخرى.')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google sign in failed:', error)
-      setError('فشل تسجيل الدخول عبر Google')
+      setError(error.message || 'فشل تسجيل الدخول عبر Google')
     } finally {
       setIsLoading(false)
     }
@@ -193,17 +223,34 @@ export default function SignInPage() {
   const handleFacebookSignIn = async () => {
     try {
       setIsLoading(true)
+      setError('')
       const result = await signInWithFacebook()
-      if (result?.ok) {
+      
+      if (result?.ok || result?.url) {
+        // حفظ حالة تسجيل الدخول
+        localStorage.setItem('isAuthenticated', 'true')
+        localStorage.setItem('authProvider', 'facebook')
+        
+        // إطلاق حدث مخصص لتحديث جميع المكونات
+        window.dispatchEvent(new CustomEvent('authStateChanged', { detail: { provider: 'facebook' } }))
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'isAuthenticated',
+          newValue: 'true',
+          url: window.location.href
+        }))
+        
         setIsSuccess(true)
+        
         setTimeout(() => {
           const redirectPath = searchParams.get('redirect') || '/'
           router.push(redirectPath)
-        }, 1000)
+        }, 1500)
+      } else if (result?.error) {
+        setError('فشل تسجيل الدخول عبر Facebook. يرجى المحاولة مرة أخرى.')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Facebook sign in failed:', error)
-      setError('فشل تسجيل الدخول عبر Facebook')
+      setError(error.message || 'فشل تسجيل الدخول عبر Facebook')
     } finally {
       setIsLoading(false)
     }

@@ -45,7 +45,21 @@ import MiniCart from './MiniCart'
 import { useRouter } from 'next/navigation'
 import { Product } from '../types'
 import { useFavorites } from '../contexts/FavoritesContext'
-import { fetchCategories, getAllProduct, getStoreSettingsPublic } from '@/lib/api'
+import { fetchCategories, getAllProduct, getStoreSettingsPublic, type StoreSettingsPublic } from '@/lib/api'
+
+// Types for initial data
+interface InitialData {
+  storeSettings: {
+    ar: StoreSettingsPublic | null
+    en: StoreSettingsPublic | null
+  }
+  categories: any[]
+  defaultLanguage: 'ar' | 'en'
+}
+
+interface HeaderProps {
+  initialData?: InitialData
+}
 
 // Enhanced search suggestion component
 interface SearchSuggestionProps { product: Product; onClick: () => void }
@@ -70,7 +84,23 @@ const SearchSuggestion = ({ product, onClick }: SearchSuggestionProps) => (
 
 // Notification badge component
 const NotificationBadge = ({ count, color = "bg-blue-500" }: { count: number; color?: string }) => {
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   if (count === 0) return null
+
+  if (!isMounted) {
+    return (
+      <span
+        className={`absolute -top-2 -right-2 ${color} text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center font-bold shadow-lg`}
+      >
+        {count > 99 ? '99+' : count}
+      </span>
+    )
+  }
 
   return (
     <motion.span
@@ -83,13 +113,13 @@ const NotificationBadge = ({ count, color = "bg-blue-500" }: { count: number; co
   )
 }
 
-export default function Header() {
+export default function Header({ initialData }: HeaderProps) {
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Product[]>([])
-  const [categories, setCategories] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>(initialData?.categories || [])
   const [notifications] = useState(3) // Mock notifications
   const headerRef = useRef(null)
 
@@ -114,35 +144,78 @@ export default function Header() {
   const t = (key: TranslationKey) => translations[language][key]
 
   const [allProducts, setAllProducts] = useState<Product[]>([])
-  const [storeName, setStoreName] = useState<string>('Oro Eshop')
-  const [logoTextColor, setLogoTextColor] = useState<string>('')
-  const [logoImageUrl, setLogoImageUrl] = useState<string>('')
+  
+  // Initialize store settings from SSR data
+  const getInitialStoreSettings = () => {
+    if (initialData?.storeSettings) {
+      const settings = initialData.storeSettings[language] || initialData.storeSettings['en'] || initialData.storeSettings['ar']
+      return settings
+    }
+    return null
+  }
+
+  const initialSettings = getInitialStoreSettings()
+  const [storeName, setStoreName] = useState<string>(initialSettings?.store?.name || 'Oro Eshop')
+  const [logoTextColor, setLogoTextColor] = useState<string>(initialSettings?.logo?.textColor || '')
+  const [logoImageUrl, setLogoImageUrl] = useState<string>(initialSettings?.logo?.imageUrl || '')
+  const [hasSetInitialLanguage, setHasSetInitialLanguage] = useState(false)
+
+  // Set initial language from SSR if provided (only once)
+  useEffect(() => {
+    if (!hasSetInitialLanguage && initialData?.defaultLanguage && language !== initialData.defaultLanguage) {
+      setLanguage(initialData.defaultLanguage)
+      setHasSetInitialLanguage(true)
+    }
+  }, [initialData?.defaultLanguage, language, hasSetInitialLanguage])
 
   useEffect(() => {
-  const fetchData = async () => {
+    const fetchData = async () => {
       try {
-        const data = await fetchCategories()
-        const categoriesData = data.map((cat: { _id: string; name: string }) => ({
-          _id: cat._id,
-          name: cat.name,
-        }))
-        setCategories(categoriesData)
-        // Load store settings (public) for current language
-        const lang = language === 'ar' ? 'ar' : 'en'
-        getStoreSettingsPublic(lang).then((ss) => {
-          if (ss?.store?.name) setStoreName(ss.store.name)
-          if (ss?.logo?.textColor) setLogoTextColor(ss.logo.textColor)
-          if (ss?.logo?.imageUrl) setLogoImageUrl(ss.logo.imageUrl)
-        }).catch(() => {})
-    // Prefetch products list for search suggestions
-    getAllProduct().then(setAllProducts).catch(err => console.warn('Failed to prefetch products', err))
+        // Use SSR categories if available, otherwise fetch them
+        if (!initialData?.categories || initialData.categories.length === 0) {
+          const data = await fetchCategories()
+          const categoriesData = data.map((cat: { _id: string; name: string }) => ({
+            _id: cat._id,
+            name: cat.name,
+          }))
+          setCategories(categoriesData)
+        }
+
+        // Update store settings when language changes
+        if (initialData?.storeSettings) {
+          const settings = initialData.storeSettings[language]
+          if (settings) {
+            if (settings.store?.name) setStoreName(settings.store.name)
+            if (settings.logo?.textColor) setLogoTextColor(settings.logo.textColor)
+            if (settings.logo?.imageUrl) setLogoImageUrl(settings.logo.imageUrl)
+          } else {
+            // Fallback to API call if language-specific data not available
+            const lang = language === 'ar' ? 'ar' : 'en'
+            getStoreSettingsPublic(lang).then((ss) => {
+              if (ss?.store?.name) setStoreName(ss.store.name)
+              if (ss?.logo?.textColor) setLogoTextColor(ss.logo.textColor)
+              if (ss?.logo?.imageUrl) setLogoImageUrl(ss.logo.imageUrl)
+            }).catch(() => { })
+          }
+        } else {
+          // Fallback to API call if no SSR data
+          const lang = language === 'ar' ? 'ar' : 'en'
+          getStoreSettingsPublic(lang).then((ss) => {
+            if (ss?.store?.name) setStoreName(ss.store.name)
+            if (ss?.logo?.textColor) setLogoTextColor(ss.logo.textColor)
+            if (ss?.logo?.imageUrl) setLogoImageUrl(ss.logo.imageUrl)
+          }).catch(() => { })
+        }
+
+        // Prefetch products list for search suggestions
+        getAllProduct().then(setAllProducts).catch(err => console.warn('Failed to prefetch products', err))
       } catch (error) {
-        console.error("Error fetching categories:", error)
+        console.error("Error fetching data:", error)
       }
     }
 
     fetchData()
-  }, [language])
+  }, [language, initialData])
 
   useEffect(() => {
     if (searchQuery.length > 2) {

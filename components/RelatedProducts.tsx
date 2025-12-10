@@ -14,9 +14,13 @@ export default function RelatedProducts({ currentProductId }: RelatedProductsPro
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
 
   useEffect(() => {
+    let isMounted = true;
+
     (async () => {
       try {
         const products = await getAllProduct();
+        if (!isMounted) return;
+
         const filtered = products
           .filter(product => product.id !== currentProductId)
           .slice(0, 4);
@@ -25,6 +29,10 @@ export default function RelatedProducts({ currentProductId }: RelatedProductsPro
         console.error('Failed to load related products', e);
       }
     })();
+
+    return () => {
+      isMounted = false;
+    }
   }, [currentProductId])
 
   return (

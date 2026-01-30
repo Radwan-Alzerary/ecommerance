@@ -35,8 +35,8 @@ export const viewport = {
 }
 
 // Function to detect language from headers or default to 'en'
-function getLanguageFromHeaders(): 'ar' | 'en' {
-  const headersList = headers()
+async function getLanguageFromHeaders(): Promise<'ar' | 'en'> {
+  const headersList = await headers()
   const acceptLanguage = headersList.get('accept-language') || ''
   
   // Check if Arabic is preferred
@@ -53,7 +53,7 @@ export default async function RootLayout({
   children: React.ReactNode
 }) {
   // Get initial language preference
-  const defaultLanguage = getLanguageFromHeaders()
+  const defaultLanguage = await getLanguageFromHeaders()
   
   // Fetch store settings and categories server-side for both languages
   const [storeSettingsAr, storeSettingsEn, initialCategories] = await Promise.all([

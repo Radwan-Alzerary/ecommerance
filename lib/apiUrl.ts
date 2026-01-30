@@ -69,7 +69,11 @@ function getServerHost(): string | null {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { headers } = require('next/headers');
     const h = headers();
-    const host = h.get('host');
+    // Next.js may return a Promise for headers() in newer versions
+    if (typeof (h as any)?.then === 'function') {
+      return null;
+    }
+    const host = (h as Headers).get('host');
     return host || null;
   } catch {
     return null;

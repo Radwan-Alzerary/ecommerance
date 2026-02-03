@@ -41,6 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { submitOrder, CreateOrderPayload } from '@/lib/api'
 import { CartItem } from '@/types'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -579,19 +580,14 @@ export default function CheckoutPage() {
             <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">
               شكراً لك على التسوق معنا. ستتلقى تأكيدًا بالبريد الإلكتروني قريبًا.
             </p>
-            <Button 
-              onClick={() => {
-                try {
-                  router.push('/');
-                } catch (error) {
-                  // استخدام window.location كبديل
-                  window.location.href = '/';
-                }
-              }}
+            <Button
+              asChild
               className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white rounded-2xl px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
             >
-              <ArrowRight className="w-5 h-5 ml-2" />
-              العودة إلى الصفحة الرئيسية
+              <Link href="/" className="flex items-center">
+                <ArrowRight className="w-5 h-5 ml-2" />
+                العودة إلى الصفحة الرئيسية
+              </Link>
             </Button>
           </motion.div>
         </div>

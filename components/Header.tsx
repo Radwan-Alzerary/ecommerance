@@ -43,9 +43,9 @@ import { useTheme } from '../contexts/ThemeContext'
 import { translations, TranslationKey } from '../utils/translations'
 import MiniCart from './MiniCart'
 import { useRouter } from 'next/navigation'
-import { Product } from '../types'
+import { Product, NotificationItem } from '../types'
 import { useFavorites } from '../contexts/FavoritesContext'
-import { fetchCategories, getAllProduct, getStoreSettingsPublic, type StoreSettingsPublic } from '@/lib/api'
+import { fetchCategories, getAllProduct, getStoreSettingsPublic, getNotifications, markNotificationRead, markAllNotificationsRead, type StoreSettingsPublic } from '@/lib/api'
 
 // Types for initial data
 interface InitialData {
@@ -90,17 +90,7 @@ const NotificationBadge = ({ count, color = "bg-blue-500" }: { count: number; co
     setIsMounted(true)
   }, [])
 
-  if (count === 0) return null
-
-  if (!isMounted) {
-    return (
-      <span
-        className={`absolute -top-2 -right-2 ${color} text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center font-bold shadow-lg`}
-      >
-        {count > 99 ? '99+' : count}
-      </span>
-    )
-  }
+  if (!isMounted || count === 0) return null
 
   return (
     <motion.span
@@ -114,13 +104,18 @@ const NotificationBadge = ({ count, color = "bg-blue-500" }: { count: number; co
 }
 
 export default function Header({ initialData }: HeaderProps) {
+  const initialDataRef = useRef<InitialData | undefined>(initialData)
+  if (!initialDataRef.current && initialData) {
+    initialDataRef.current = initialData
+  }
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Product[]>([])
-  const [categories, setCategories] = useState<any[]>(initialData?.categories || [])
-  const [notifications] = useState(3) // Mock notifications
+  const [categories, setCategories] = useState<any[]>(initialDataRef.current?.categories || [])
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const headerRef = useRef(null)
 
   const { cart } = useCart()
@@ -130,6 +125,7 @@ export default function Header({ initialData }: HeaderProps) {
   const { isAuthenticated, user, isLoading } = useAuthStatus()
   const cartItemsCount = cart.reduce((total, item) => total + item.quantity, 0)
   const router = useRouter()
+  const unreadCount = notifications.filter(n => !n.read).length
 
   // Scroll-based header styling
   const { scrollY } = useScroll()
@@ -147,8 +143,8 @@ export default function Header({ initialData }: HeaderProps) {
   
   // Initialize store settings from SSR data
   const getInitialStoreSettings = () => {
-    if (initialData?.storeSettings) {
-      const settings = initialData.storeSettings[language] || initialData.storeSettings['en'] || initialData.storeSettings['ar']
+    if (initialDataRef.current?.storeSettings) {
+      const settings = initialDataRef.current.storeSettings[language] || initialDataRef.current.storeSettings['en'] || initialDataRef.current.storeSettings['ar']
       return settings
     }
     return null
@@ -162,17 +158,17 @@ export default function Header({ initialData }: HeaderProps) {
 
   // Set initial language from SSR if provided (only once)
   useEffect(() => {
-    if (!hasSetInitialLanguage && initialData?.defaultLanguage && language !== initialData.defaultLanguage) {
-      setLanguage(initialData.defaultLanguage)
+    if (!hasSetInitialLanguage && initialDataRef.current?.defaultLanguage && language !== initialDataRef.current.defaultLanguage) {
+      setLanguage(initialDataRef.current.defaultLanguage)
       setHasSetInitialLanguage(true)
     }
-  }, [initialData?.defaultLanguage, language, hasSetInitialLanguage])
+  }, [language, hasSetInitialLanguage])
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Use SSR categories if available, otherwise fetch them
-        if (!initialData?.categories || initialData.categories.length === 0) {
+        if (!initialDataRef.current?.categories || initialDataRef.current.categories.length === 0) {
           const data = await fetchCategories()
           const categoriesData = data.map((cat: { _id: string; name: string }) => ({
             _id: cat._id,
@@ -182,8 +178,8 @@ export default function Header({ initialData }: HeaderProps) {
         }
 
         // Update store settings when language changes
-        if (initialData?.storeSettings) {
-          const settings = initialData.storeSettings[language]
+        if (initialDataRef.current?.storeSettings) {
+          const settings = initialDataRef.current.storeSettings[language]
           if (settings) {
             if (settings.store?.name) setStoreName(settings.store.name)
             if (settings.logo?.textColor) setLogoTextColor(settings.logo.textColor)
@@ -215,7 +211,29 @@ export default function Header({ initialData }: HeaderProps) {
     }
 
     fetchData()
-  }, [language, initialData])
+  }, [language])
+
+  useEffect(() => {
+    let active = true
+
+    const loadNotifications = async () => {
+      try {
+        const data = await getNotifications()
+        if (!active) return
+        setNotifications(data)
+      } catch {
+        // ignore
+      }
+    }
+
+    loadNotifications()
+    const interval = setInterval(loadNotifications, 60000)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+    }
+  }, [])
 
   useEffect(() => {
     if (searchQuery.length > 2) {
@@ -502,14 +520,88 @@ export default function Header({ initialData }: HeaderProps) {
               </Button>
 
               {/* Notifications */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 relative"
-              >
-                <Bell className="h-5 w-5" />
-                <NotificationBadge count={notifications} color="bg-red-500" />
-              </Button>
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={async () => {
+                    const nextOpen = !isNotificationsOpen
+                    setIsNotificationsOpen(nextOpen)
+                    if (nextOpen) {
+                      const data = await getNotifications()
+                      setNotifications(data)
+                    }
+                  }}
+                  className="rounded-2xl hover:bg-gray-100 dark:hover:bg-gray-800 relative"
+                >
+                  <Bell className="h-5 w-5" />
+                  <NotificationBadge count={unreadCount} color="bg-red-500" />
+                </Button>
+
+                <AnimatePresence>
+                  {isNotificationsOpen && (
+                    <>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setIsNotificationsOpen(false)}
+                        className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                      />
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="absolute mt-4 right-0 z-50 w-96 max-w-[90vw] bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200/50 dark:border-gray-700/50">
+                          <span className="font-semibold">الإشعارات</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              await markAllNotificationsRead()
+                              const data = await getNotifications()
+                              setNotifications(data.map(n => ({ ...n, read: true })))
+                            }}
+                          >
+                            تعليم الكل كمقروء
+                          </Button>
+                        </div>
+                        <div className="max-h-96 overflow-y-auto">
+                          {notifications.length === 0 ? (
+                            <div className="p-6 text-sm text-gray-600 dark:text-gray-400 text-center">
+                              لا توجد إشعارات الآن
+                            </div>
+                          ) : (
+                            notifications.map((n) => (
+                              <button
+                                key={n._id || n.id}
+                                onClick={async () => {
+                                  if (n._id) await markNotificationRead(n._id)
+                                  if (n.link) router.push(n.link)
+                                  setIsNotificationsOpen(false)
+                                }}
+                                className={`w-full text-right px-5 py-4 border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${n.read ? 'opacity-70' : ''}`}
+                              >
+                                <div className="font-medium text-gray-900 dark:text-white">{n.title}</div>
+                                {n.message && (
+                                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{n.message}</div>
+                                )}
+                                {n.createdAt && (
+                                  <div className="text-xs text-gray-400 mt-2">
+                                    {new Date(n.createdAt).toLocaleString('ar-IQ')}
+                                  </div>
+                                )}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
 
               {/* Favorites */}
               <Link href="/favorites">

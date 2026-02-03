@@ -23,19 +23,32 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light')
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme
-    if (savedTheme) {
-      setTheme(savedTheme)
+    try {
+      const savedTheme = localStorage.getItem('theme') as Theme | null
+      if (savedTheme) {
+        setTheme(savedTheme)
+        return
+      }
+    } catch {
+      // ignore storage errors
+    }
+
+    if (typeof window !== 'undefined') {
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      setTheme(prefersDark ? 'dark' : 'light')
     }
   }, [])
 
   useEffect(() => {
-    localStorage.setItem('theme', theme)
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
+    try {
+      localStorage.setItem('theme', theme)
+    } catch {
+      // ignore storage errors
     }
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    document.body?.classList.toggle('dark', theme === 'dark')
+    document.documentElement.setAttribute('data-theme', theme)
+    document.documentElement.style.colorScheme = theme
   }, [theme])
 
   return (

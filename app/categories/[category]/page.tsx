@@ -8,18 +8,31 @@ import { buildAssetUrl } from '@/lib/apiUrl'
 export default function CategoryPage({ params }: { params: { category: string } }) {
   const categoryName = decodeURIComponent(params.category)
   const [categoryProduct, setCategoryProduct] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchCategoryProduct() {
-      // Await the async function to get the product by category
-      const product = await getProductByCategory(categoryName)
-      setCategoryProduct(product)
+      try {
+        setIsLoading(true)
+        setError(null)
+        const product = await getProductByCategory(categoryName)
+        setCategoryProduct(product)
+      } catch (err: any) {
+        setError(err?.message || 'فشل تحميل بيانات التصنيف')
+        setCategoryProduct(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
     fetchCategoryProduct()
   }, [categoryName])
 
-  if (!categoryProduct) {
+  if (isLoading) {
     return <div>Loading...</div>
+  }
+  if (error) {
+    return <div>{error}</div>
   }
 // console.log('Category hero image:', buildAssetUrl(categoryProduct.image?.url))
   return (

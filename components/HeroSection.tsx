@@ -95,16 +95,18 @@ export default function HeroSection() {
   }
   
   const [mounted, setMounted] = useState(false)
+  const [isHydrated, setIsHydrated] = useState(false)
+  const [scrollTarget, setScrollTarget] = useState<HTMLElement | null>(null)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [isPlaying, setIsPlaying] = useState(true)
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const swiperRef = useRef<any>(null)
-  const containerRef = useRef(null)
+  const containerRef = useRef<HTMLElement | null>(null)
   
   const { scrollYProgress } = useScroll({
-    target: containerRef,
+    target: isHydrated ? scrollTarget ?? undefined : undefined,
     offset: ["start start", "end start"]
   })
   
@@ -129,8 +131,15 @@ export default function HeroSection() {
 
   useEffect(() => {
     setMounted(true)
+    setIsHydrated(true)
     fetchHeroSlides()
   }, [])
+
+  useEffect(() => {
+    if (containerRef.current) {
+      setScrollTarget(containerRef.current)
+    }
+  }, [containerRef])
 
   const slideVariants = {
     enter: {

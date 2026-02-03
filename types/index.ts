@@ -111,6 +111,17 @@ export interface HeroSlide {
   order?: number;
 }
 
+export interface NotificationItem {
+  _id: string;
+  id?: string;
+  title: string;
+  message?: string;
+  type?: 'info' | 'success' | 'warning' | 'error';
+  read?: boolean;
+  createdAt?: string;
+  link?: string;
+}
+
 export interface CustomSection {
   _id: string;
   id: string;

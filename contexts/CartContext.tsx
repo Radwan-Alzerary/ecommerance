@@ -36,30 +36,43 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | undefined>(undefined);
 
 // Cart reducer function
+const getItemKey = (item: Partial<CartItem>) =>
+  (item as any)?._id || (item as any)?.id || '';
+
 const cartReducer = (state: CartState, action: CartAction): CartState => {
   switch (action.type) {
     case 'SET_CART':
       return { items: action.payload };
 
     case 'ADD_TO_CART': {
+      const payloadKey = getItemKey(action.payload);
       const existingIndex = state.items.findIndex(
-        (item) => item._id === action.payload._id // Assumes _id exists on CartItem
+        (item) => getItemKey(item) === payloadKey
       );
       if (existingIndex !== -1) {
         const updatedItems = [...state.items];
+        const currentQty = Number(updatedItems[existingIndex].quantity) || 0;
+        const incomingQty = Number(action.payload.quantity) || 1;
         updatedItems[existingIndex] = {
           ...updatedItems[existingIndex],
-          quantity:
-            updatedItems[existingIndex].quantity + action.payload.quantity,
+          quantity: currentQty + incomingQty,
         };
         return { items: updatedItems };
       }
-      return { items: [...state.items, action.payload] };
+      return {
+        items: [
+          ...state.items,
+          {
+            ...action.payload,
+            quantity: Number(action.payload.quantity) || 1,
+          },
+        ],
+      };
     }
 
     case 'REMOVE_FROM_CART':
       return {
-        items: state.items.filter((item) => item._id !== action.payload), // action.payload is the _id
+        items: state.items.filter((item) => getItemKey(item) !== action.payload), // action.payload is the _id or id
       };
 
     case 'UPDATE_QUANTITY':
@@ -74,7 +87,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       }
       return {
         items: state.items.map((item) =>
-          item._id === action.payload._id
+          getItemKey(item) === action.payload._id
             ? { ...item, quantity: action.payload.quantity }
             : item
         ),
@@ -96,7 +109,11 @@ function initCartState(initialState: CartState): CartState {
         const parsedItems = JSON.parse(saved);
         // Basic validation to ensure parsedItems is an array
         if (Array.isArray(parsedItems)) {
-          return { items: parsedItems };
+          const normalized = parsedItems.map((item) => ({
+            ...item,
+            quantity: Number(item?.quantity) > 0 ? Number(item.quantity) : 1,
+          }));
+          return { items: normalized };
         }
       } catch (e) {
         console.error("Failed to parse cart from localStorage", e);
@@ -126,7 +143,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           const newItems = JSON.parse(e.newValue);
           if (Array.isArray(newItems)) {
-            dispatch({ type: 'SET_CART', payload: newItems });
+            const normalized = newItems.map((item) => ({
+              ...item,
+              quantity: Number(item?.quantity) > 0 ? Number(item.quantity) : 1,
+            }));
+            dispatch({ type: 'SET_CART', payload: normalized });
           }
         } catch (error) {
           console.error('Error parsing cart from storage event:', error);
@@ -141,7 +162,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           const parsedItems = JSON.parse(saved);
           if (Array.isArray(parsedItems)) {
-            dispatch({ type: 'SET_CART', payload: parsedItems });
+            const normalized = parsedItems.map((item) => ({
+              ...item,
+              quantity: Number(item?.quantity) > 0 ? Number(item.quantity) : 1,
+            }));
+            dispatch({ type: 'SET_CART', payload: normalized });
           }
         } catch (error) {
           console.error('Error parsing cart:', error);

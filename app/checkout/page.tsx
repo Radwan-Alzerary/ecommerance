@@ -165,6 +165,7 @@ export default function CheckoutPage() {
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = useState<boolean>(false);
+  const [showSignInPrompt, setShowSignInPrompt] = useState(false);
 
   // Promo Code State
   const [promoCodeInput, setPromoCodeInput] = useState('');
@@ -203,6 +204,12 @@ export default function CheckoutPage() {
       setSavedAddresses([]);
     }
   }, [isAuthenticated, user?.id, localStorageKey, user, addressManagementMode]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setShowSignInPrompt(false);
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetch('https://countriesnow.space/api/v0.1/countries')
@@ -434,7 +441,8 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !user._id) {
-      setOrderError("المستخدم غير مسجل الدخول. يرجى تسجيل الدخول للمتابعة.");
+      setOrderError("يرجى تسجيل الدخول لإكمال الطلب.");
+      setShowSignInPrompt(true);
       return;
     }
     if (cart.length === 0) {
@@ -547,36 +555,6 @@ export default function CheckoutPage() {
     )
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900 dark:to-purple-900 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-blue-200/30 dark:bg-blue-800/20 rounded-full filter blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-purple-200/30 dark:bg-purple-800/20 rounded-full filter blur-3xl" />
-        </div>
-        <div className="relative container mx-auto px-4 py-8 text-right" dir="rtl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center"
-          >
-            <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
-              إتمام الطلب
-            </h1>
-            {authError && (
-              <p className="text-red-600 dark:text-red-400 mb-4">
-                خطأ في المصادقة: {authError.message || authError.toString()}
-              </p>
-            )}
-            <div className="max-w-md mx-auto">
-              <SignInPrompt />
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    )
-  }
-
   if (orderSuccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 dark:from-green-900 dark:via-blue-900 dark:to-purple-900 relative overflow-hidden">
@@ -661,6 +639,26 @@ export default function CheckoutPage() {
                     <p className="text-red-700 dark:text-red-300">{orderError}</p>
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showSignInPrompt && !isAuthenticated && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -10 }}
+              className="mb-6 max-w-4xl mx-auto"
+            >
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4">
+                {authError && (
+                  <p className="text-red-600 dark:text-red-400 mb-3">
+                    خطأ في المصادقة: {authError.message || authError.toString()}
+                  </p>
+                )}
+                <SignInPrompt />
               </div>
             </motion.div>
           )}

@@ -91,6 +91,8 @@ export default function CategoryCard({ name, image, _id, id }: CategoryCardProps
   }
 
   const fallbackImage = getCategoryFallbackImage(name)
+  const resolvedImage = buildAssetUrl(image)
+  const imageSrc = resolvedImage || fallbackImage
 
   return (
     <motion.div
@@ -121,7 +123,7 @@ export default function CategoryCard({ name, image, _id, id }: CategoryCardProps
             transition={{ duration: 0.7, ease: "easeOut" }}
           >
             <ImageWithFallback
-              src={image ? buildAssetUrl(image) : "/placeholder.svg"}
+              src={imageSrc}
               fallbackSrc={fallbackImage}
               alt={name}
               fill

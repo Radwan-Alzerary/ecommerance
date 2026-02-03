@@ -14,6 +14,7 @@ import { translations } from '@/utils/translations'
 import { buildAssetUrl } from '@/lib/apiUrl'
 import { useInView } from 'react-intersection-observer'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface ProductCardProps extends Product {}
 
@@ -35,6 +36,7 @@ export default function ProductCard(props: ProductCardProps) {
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites()
   const { language } = useLanguage()
   const t = (key: string) => (translations as any)[language]?.[key] || key
+  const router = useRouter()
 
   const pid = _id || id || ''
   const isFav = isFavorite(pid)
@@ -61,8 +63,13 @@ export default function ProductCard(props: ProductCardProps) {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    addToCart({ ...props, quantity: 1 })
+    if (!pid) return
+    addToCart({ ...props, _id: pid, id: pid, quantity: 1 })
   }
+
+  const plainDescription = typeof description === 'string'
+    ? description.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
+    : ''
 
   const renderStars = (score: number) => {
     if (score === undefined) return null
@@ -206,9 +213,13 @@ export default function ProductCard(props: ProductCardProps) {
             variant="ghost"
             size="icon"
             className="h-10 w-10 bg-white/90 backdrop-blur-md hover:bg-white border border-white/20 shadow-sm"
-            asChild
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              router.push(`/products/${pid}`)
+            }}
           >
-            <Link href={`/products/${pid}`} className="pointer-events-auto"><Eye className="h-4 w-4" /></Link>
+            <Eye className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"
@@ -246,7 +257,7 @@ export default function ProductCard(props: ProductCardProps) {
               {name}
             </h3>
             <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-1 leading-relaxed h-[20px] overflow-hidden mt-1">
-              {description || 'Premium quality product'}
+              {plainDescription || 'Premium quality product'}
             </p>
           </motion.div>
         </Link>

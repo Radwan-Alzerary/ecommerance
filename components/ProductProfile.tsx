@@ -77,7 +77,7 @@ export default function ProductProfile({ product }: ProductProfileProps) {
   const [showCopiedToast, setShowCopiedToast] = useState(false)
   const { addToCart } = useCart()
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites()
-  const pid = (product?._id || product?.id || '') as string
+  const pid = (product?._id || product?.id || (product as any)?.productId || '') as string
   const isFav = pid ? isFavorite(pid) : false
 
   if (!product) {
@@ -110,7 +110,8 @@ export default function ProductProfile({ product }: ProductProfileProps) {
     if (!product) return
     setIsAddingToCart(true)
     try {
-      addToCart({ ...product, quantity: quantity })
+      if (!pid) return
+      addToCart({ ...product, _id: pid, id: pid, quantity: quantity })
       // تأخير بسيط لإظهار Loading
       setTimeout(() => {
         setIsAddingToCart(false)

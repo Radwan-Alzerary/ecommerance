@@ -10,7 +10,6 @@ import ContactForm from '@/components/ContactForm'
 import Newsletter from '@/components/Newsletter'
 import { getAllCategory } from '@/lib/api'
 import { useEffect, useState } from 'react'
-import { API_URL } from '@/lib/apiUrl'
 import { Category } from '@/types'
 
 export default function Home() {

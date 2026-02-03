@@ -37,6 +37,33 @@ import {
 
 interface ProductGridProps {
   products: Product[]
+  useServerPagination?: boolean
+  serverPagination?: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+  onPageChange?: (page: number) => void
+  onPageSizeChange?: (limit: number) => void
+  filters?: {
+    searchTerm?: string
+    sortBy?: SortOption
+    priceRange?: [number, number]
+    selectedCategories?: string[]
+    selectedColors?: string[]
+    selectedSizes?: string[]
+    minRating?: number
+  }
+  onFiltersChange?: (filters: {
+    searchTerm: string
+    sortBy: SortOption
+    priceRange: [number, number]
+    selectedCategories: string[]
+    selectedColors: string[]
+    selectedSizes: string[]
+    minRating: number
+  }) => void
 }
 
 type SortOption = 'name' | 'price-low' | 'price-high' | 'rating' | 'newest'
@@ -137,7 +164,15 @@ const DualRangeSlider = ({ min, max, value, onChange, step = 1 }: DualRangeSlide
   )
 }
 
-export default function ProductGrid({ products }: ProductGridProps) {
+export default function ProductGrid({
+  products,
+  useServerPagination = false,
+  serverPagination,
+  onPageChange,
+  onPageSizeChange,
+  filters,
+  onFiltersChange
+}: ProductGridProps) {
   const getNumericRating = (rating: Product['rating']): number => {
     if (Array.isArray(rating)) {
       if (!rating.length) return 0
@@ -163,24 +198,37 @@ export default function ProductGrid({ products }: ProductGridProps) {
   }, [products])
 
   const [filteredProducts, setFilteredProducts] = useState<Product[]>(products)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(filters?.searchTerm ?? '')
   const deferredSearch = useDeferredValue(searchTerm)
   // تحديث: استخدام maxPrice الفعلي بدلاً من القيمة الثابتة
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, filterOptions.maxPrice])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedColors, setSelectedColors] = useState<string[]>([])
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([])
-  const [minRating, setMinRating] = useState(0)
-  const [sortBy, setSortBy] = useState<SortOption>('newest')
+  const [priceRange, setPriceRange] = useState<[number, number]>(filters?.priceRange ?? [0, filterOptions.maxPrice])
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(filters?.selectedCategories ?? [])
+  const [selectedColors, setSelectedColors] = useState<string[]>(filters?.selectedColors ?? [])
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(filters?.selectedSizes ?? [])
+  const [minRating, setMinRating] = useState(filters?.minRating ?? 0)
+  const [sortBy, setSortBy] = useState<SortOption>(filters?.sortBy ?? 'newest')
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [pageSize, setPageSize] = useState(20)
+  const [currentPage, setCurrentPage] = useState(1)
   const isDesktop = useIsDesktop()
 
   // تحديث نطاق السعر عند تغيير المنتجات
   useEffect(() => {
     setPriceRange([0, filterOptions.maxPrice])
   }, [filterOptions.maxPrice])
+
+  useEffect(() => {
+    if (!filters) return
+    if (typeof filters.searchTerm === 'string') setSearchTerm(filters.searchTerm)
+    if (filters.sortBy) setSortBy(filters.sortBy)
+    if (filters.priceRange) setPriceRange(filters.priceRange)
+    if (filters.selectedCategories) setSelectedCategories(filters.selectedCategories)
+    if (filters.selectedColors) setSelectedColors(filters.selectedColors)
+    if (filters.selectedSizes) setSelectedSizes(filters.selectedSizes)
+    if (typeof filters.minRating === 'number') setMinRating(filters.minRating)
+  }, [filters])
 
   // Keep filtered products in sync when incoming products change
   useEffect(() => {
@@ -190,10 +238,30 @@ export default function ProductGrid({ products }: ProductGridProps) {
   // Debounced search
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      if (useServerPagination) {
+        setFilteredProducts(products)
+        return
+      }
       filterAndSortProducts()
     }, 300)
     return () => clearTimeout(timeoutId)
   }, [products, deferredSearch, priceRange, selectedCategories, selectedColors, selectedSizes, minRating, sortBy])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [deferredSearch, priceRange, selectedCategories, selectedColors, selectedSizes, minRating, sortBy, pageSize])
+
+  useEffect(() => {
+    onFiltersChange?.({
+      searchTerm,
+      sortBy,
+      priceRange,
+      selectedCategories,
+      selectedColors,
+      selectedSizes,
+      minRating
+    })
+  }, [searchTerm, sortBy, priceRange, selectedCategories, selectedColors, selectedSizes, minRating, onFiltersChange])
 
   const filterAndSortProducts = () => {
     setIsLoading(true)
@@ -324,15 +392,29 @@ export default function ProductGrid({ products }: ProductGridProps) {
     }
   }
 
+  const totalPages = useServerPagination
+    ? (serverPagination?.totalPages || 1)
+    : Math.max(1, Math.ceil(filteredProducts.length / pageSize))
+  const safeCurrentPage = useServerPagination
+    ? (serverPagination?.page || 1)
+    : Math.min(currentPage, totalPages)
+  const startIndex = useServerPagination
+    ? ((serverPagination?.page || 1) - 1) * (serverPagination?.limit || 1)
+    : (safeCurrentPage - 1) * pageSize
+  const endIndex = useServerPagination
+    ? startIndex + (serverPagination?.limit || 1)
+    : startIndex + pageSize
+  const paginatedProducts = useServerPagination ? filteredProducts : filteredProducts.slice(startIndex, endIndex)
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/20">
       {/* Enhanced Header */}
       <div className="sticky top-0 z-40 backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
-        <div className="container mx-auto px-6 py-4">
+        <div className="w-full px-6 py-4">
           {/* Search and Controls */}
-          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
+          <div className="flex flex-col lg:flex-row gap-4 items-center justify-between w-full">
             {/* Search Bar */}
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
@@ -518,8 +600,8 @@ export default function ProductGrid({ products }: ProductGridProps) {
         </div>
       </div>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="w-full px-6 py-8">
+        <div className="flex flex-col lg:flex-row-reverse gap-8">
           {/* Enhanced Filter Sidebar */}
           <AnimatePresence>
             {(isFilterOpen || isDesktop) && (
@@ -528,7 +610,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -300 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="lg:w-80 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl p-6"
+                className="lg:w-80 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl p-6 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto"
               >
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
@@ -785,7 +867,7 @@ export default function ProductGrid({ products }: ProductGridProps) {
           {/* Products Section */}
           <div className="flex-1">
             {/* Results Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                   {isLoading ? 'جاري البحث...' : `${filteredProducts.length} منتج`}
@@ -796,14 +878,40 @@ export default function ProductGrid({ products }: ProductGridProps) {
                   </span>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsFilterOpen(!isFilterOpen)}
-                className="lg:hidden"
-              >
-                {isFilterOpen ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </Button>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">عرض</span>
+                  <Select
+                    value={String(useServerPagination ? (serverPagination?.limit || pageSize) : pageSize)}
+                    onValueChange={(value) => {
+                      const next = Number(value)
+                      if (useServerPagination) {
+                        onPageSizeChange?.(next)
+                      } else {
+                        setPageSize(next)
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[100px] bg-white/90 dark:bg-gray-800/90 border-gray-200 dark:border-gray-700 rounded-xl h-10">
+                      <SelectValue placeholder="20" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                  className="lg:hidden"
+                >
+                  {isFilterOpen ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
 
             {/* Loading State */}
@@ -835,12 +943,55 @@ export default function ProductGrid({ products }: ProductGridProps) {
                     : 'grid-cols-1'
                 }`}
               >
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <div key={product._id}>
                     <ProductCard {...product} />
                   </div>
                 ))}
               </motion.div>
+            )}
+
+            {!isLoading && filteredProducts.length > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  عرض {startIndex + 1}-{Math.min(endIndex, useServerPagination ? (serverPagination?.total || filteredProducts.length) : filteredProducts.length)} من {useServerPagination ? (serverPagination?.total || filteredProducts.length) : filteredProducts.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safeCurrentPage === 1}
+                    onClick={() => {
+                      if (useServerPagination) {
+                        onPageChange?.(Math.max(1, safeCurrentPage - 1))
+                      } else {
+                        setCurrentPage((p) => Math.max(1, p - 1))
+                      }
+                    }}
+                    className="rounded-lg"
+                  >
+                    السابق
+                  </Button>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                    {safeCurrentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={safeCurrentPage === totalPages}
+                    onClick={() => {
+                      if (useServerPagination) {
+                        onPageChange?.(Math.min(totalPages, safeCurrentPage + 1))
+                      } else {
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                    }}
+                    className="rounded-lg"
+                  >
+                    التالي
+                  </Button>
+                </div>
+              </div>
             )}
 
             {/* Empty State */}

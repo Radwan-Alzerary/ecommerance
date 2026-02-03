@@ -155,7 +155,7 @@ export const AuthProvider = ({
     const isAuthenticated = useMemo(() => !!user, [user]); // Simpler: user exists
 
     // قائمة الصفحات المحمية التي تتطلب تسجيل دخول
-    const protectedPaths = ['/checkout', '/orders', '/profile', '/favorites'];
+    const protectedPaths: string[] = [];
     const isProtectedPath = protectedPaths.some(path => pathname?.startsWith(path));
 
     // Effect to handle redirection if not authenticated - only for protected paths

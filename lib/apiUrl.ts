@@ -83,6 +83,16 @@ function getServerHost(): string | null {
 export function getApiUrl(): string {
   devLog("[config] getApiUrl() called");
 
+  // 0) If running on localhost/IP in browser, force local API
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    const localDerived = deriveFromLocalOrIpHost(hostname);
+    if (localDerived) {
+      devLog('[config] local hostname detected →', localDerived);
+      return localDerived;
+    }
+  }
+
   // 1) Explicit override via env var (works server- & client-side)
   const envOverride =
     process.env.API_BASE_URL ??
@@ -164,5 +174,6 @@ export function buildAssetUrl(path?: unknown): string {
   if (!str) return '';
   // Already absolute or data URI
   if (/^https?:\/\//i.test(str) || str.startsWith('data:')) return str;
-  return API_URL + (str.startsWith('/') ? str.slice(1) : str);
+  const baseUrl = getApiUrl();
+  return baseUrl + (str.startsWith('/') ? str.slice(1) : str);
 }

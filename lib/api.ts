@@ -11,7 +11,8 @@ import {
     AuthResponse, // Assuming this type exists for signin response { success: boolean, token?: string, data: Customer }
     CartItem,
     HeroSlide,
-    CustomSection
+    CustomSection,
+    NotificationItem
 } from "@/types"; // Adjust path if needed
 import { API_URL, getApiUrl } from './apiUrl'; // Import getApiUrl for per-request baseURL
 
@@ -74,16 +75,13 @@ api.interceptors.response.use(
     (error: AxiosError) => { // Use AxiosError type
         // handle 401 globally (Original logic kept as requested)
         if (error.response && error.response.status === 401) {
-            console.error(`Unauthorized (401) accessing ${error.config?.url}! Redirecting to login...`);
+            if (error.config?.url !== '/auth/me') {
+                console.warn(`Unauthorized (401) accessing ${error.config?.url}!`);
+            }
             // Clear potentially invalid token that caused the 401, unless it was the signin attempt itself
             if (typeof window !== 'undefined' && error.config?.url !== '/auth/signin') {
                 localStorage.removeItem(AUTH_TOKEN_KEY);
                 console.log("Cleared potentially invalid token from localStorage due to 401.")
-            }
-            // Redirect (Original logic kept as requested)
-            // Ensure this doesn't cause loops if /signin itself requires auth or fails
-            if (typeof window !== 'undefined' && window.location.pathname !== '/signin') {
-                window.location.href = "/signin?unauthorized=true"; // Added query param for context
             }
         }
         // Important: Always reject the promise so calling code's .catch() runs
@@ -299,6 +297,124 @@ export async function getAllProduct(): Promise<Product[]> {
         console.error("❌ Error response:", error.response?.data);
         // Throwing original error structure
         throw new Error(error.response?.data?.message || "Failed to fetch products"); // Adjusted generic message slightly
+    }
+}
+
+export interface PaginatedProductsParams {
+    page?: number;
+    limit?: number;
+    sort?: 'newest' | 'price-low' | 'price-high' | 'rating' | 'name';
+    search?: string;
+    category?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    colors?: string[];
+    sizes?: string[];
+}
+
+export interface PaginatedProductsResult {
+    items: Product[];
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+}
+
+export async function getProductsPaginated(params: PaginatedProductsParams = {}): Promise<PaginatedProductsResult> {
+    const page = params.page ?? 1;
+    const limit = params.limit ?? 20;
+
+    try {
+        const response = await api.get<any>('/online/food', {
+            params: {
+                page,
+                limit,
+                sort: params.sort,
+                search: params.search,
+                category: params.category,
+                minPrice: params.minPrice,
+                maxPrice: params.maxPrice,
+                colors: params.colors?.join(','),
+                sizes: params.sizes?.join(','),
+            }
+        });
+
+        const data = response.data;
+
+        const items: Product[] = Array.isArray(data)
+            ? data
+            : (data.data || data.items || data.products || []);
+
+        const pagination = data.pagination || {};
+        const total = pagination.total ?? data.total ?? data.count ?? items.length;
+        const resolvedPage = pagination.page ?? data.page ?? page;
+        const resolvedLimit = pagination.limit ?? data.limit ?? limit;
+        const totalPages = pagination.totalPages ?? data.totalPages ?? Math.max(1, Math.ceil(total / resolvedLimit));
+
+        return {
+            items,
+            page: resolvedPage,
+            limit: resolvedLimit,
+            total,
+            totalPages
+        };
+    } catch (error: any) {
+        const message = getErrorMessage(error);
+        console.error("Failed to fetch paginated products:", message);
+        throw new Error(message);
+    }
+}
+
+function parseNotificationsResponse(data: any): NotificationItem[] {
+    if (!data) return [];
+    if (Array.isArray(data)) return data as NotificationItem[];
+    if (data.success && Array.isArray(data.data)) return data.data as NotificationItem[];
+    if (Array.isArray(data.items)) return data.items as NotificationItem[];
+    return [];
+}
+
+export async function getNotifications(): Promise<NotificationItem[]> {
+    const endpoints = ['/api/notifications', '/online/notifications', '/notifications'];
+    for (const endpoint of endpoints) {
+        try {
+            const response = await api.get<any>(endpoint);
+            const parsed = parseNotificationsResponse(response.data);
+            if (parsed.length > 0 || response.status === 200) return parsed;
+        } catch (error: any) {
+            if (error?.response?.status !== 404 && error?.response?.status !== 401) {
+                console.warn('Notifications fetch failed:', error);
+            }
+        }
+    }
+    return [];
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+    if (!id) return;
+    const endpoints = [`/api/notifications/${id}/read`, `/online/notifications/${id}/read`, `/notifications/${id}/read`];
+    for (const endpoint of endpoints) {
+        try {
+            await api.post(endpoint);
+            return;
+        } catch (error: any) {
+            if (error?.response?.status !== 404 && error?.response?.status !== 401) {
+                console.warn('Mark notification read failed:', error);
+            }
+        }
+    }
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+    const endpoints = ['/api/notifications/read-all', '/online/notifications/read-all', '/notifications/read-all'];
+    for (const endpoint of endpoints) {
+        try {
+            await api.post(endpoint);
+            return;
+        } catch (error: any) {
+            if (error?.response?.status !== 404 && error?.response?.status !== 401) {
+                console.warn('Mark all notifications read failed:', error);
+            }
+        }
     }
 }
 // --- Fixed version: handles CSR **and** SSR correctly
@@ -517,14 +633,39 @@ export async function getAllCategory(): Promise<Category[]> {
     }
 }
 
+function parseCategoryInfoResponse(data: any) {
+    if (!data) return null;
+    if (data.success && data.data) return data.data;
+    if (data.data) return data.data;
+    return data;
+}
+
 // Note: This function returned Category[] but endpoint suggests product info? Keeping original structure.
-export async function getProductByCategory(id: string): Promise<Category[]> { // Keeping original return type Category[]
+export async function getProductByCategory(idOrName: string): Promise<any> {
     try {
-        const response = await api.get<Category[]>(`/online/category/info/${id}`);
-        return response.data;
+        const encoded = encodeURIComponent(idOrName);
+        const endpoints = [
+            `/online/category/info/${encoded}`,
+            `/online/category/info?name=${encoded}`,
+            `/online/category/info?slug=${encoded}`
+        ];
+
+        for (const endpoint of endpoints) {
+            try {
+                const response = await api.get<any>(endpoint);
+                const parsed = parseCategoryInfoResponse(response.data);
+                if (parsed) return parsed;
+            } catch (innerError: any) {
+                if (innerError?.response?.status !== 404) {
+                    throw innerError;
+                }
+            }
+        }
+
+        throw new Error("Failed to fetch category info");
     } catch (error: any) {
         // Throwing original error structure
-        throw new Error(error.response?.data?.message || "Failed to fetch category info"); // Adjusted generic message slightly
+        throw new Error(error.response?.data?.message || error.message || "Failed to fetch category info");
     }
 }
 

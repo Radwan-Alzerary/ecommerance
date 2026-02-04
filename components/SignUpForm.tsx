@@ -27,7 +27,7 @@ import {
   Gift,
   Star
 } from 'lucide-react'
-import { signUpUser } from '@/lib/api'
+import { signUpUser, getStoreSettingsPublic, type StoreSettingsPublic } from '@/lib/api'
 import type { CheckedState } from '@radix-ui/react-checkbox'
 import React from 'react'
 
@@ -100,9 +100,18 @@ export function SignUpForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; identifier?: string; password?: string; confirmPassword?: string }>({})
   const [touchedFields, setTouchedFields] = useState<{ name?: boolean; identifier?: boolean; password?: boolean; confirmPassword?: boolean }>({})
+  const [storeName, setStoreName] = useState('')
 
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  useEffect(() => {
+    getStoreSettingsPublic('ar')
+      .then((settings: StoreSettingsPublic | null) => {
+        if (settings?.store?.name) setStoreName(settings.store.name)
+      })
+      .catch(() => { })
+  }, [])
 
   useEffect(() => {
     const errors: { name?: string; identifier?: string; password?: string; confirmPassword?: string } = {}
@@ -128,7 +137,11 @@ export function SignUpForm() {
     try {
       const result = await signUpUser({ name, identifier, password })
       console.log('تم إنشاء الحساب بنجاح:', result)
-      setSuccess('تم إنشاء الحساب بنجاح! مرحباً بك في عائلة Oro Eshop')
+      setSuccess(
+        storeName
+          ? `تم إنشاء الحساب بنجاح! مرحباً بك في عائلة ${storeName}`
+          : 'تم إنشاء الحساب بنجاح! مرحباً بك في متجرنا'
+      )
       setName(''); setIdentifier(''); setPassword(''); setConfirmPassword(''); setAcceptTerms(false); setTouchedFields({})
       setTimeout(() => {
         const redirectPath = searchParams.get('redirect')

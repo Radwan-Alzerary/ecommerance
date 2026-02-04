@@ -686,7 +686,7 @@ export default function Header({ initialData }: HeaderProps) {
                     <>
                       <DropdownMenuLabel className="text-center py-4">
                         <Zap className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-                        <span className="font-semibold">Join Oro Eshop</span>
+                        <span className="font-semibold">Join {storeName}</span>
                       </DropdownMenuLabel>
                       <DropdownMenuItem className="rounded-xl mx-1">
                         <Link href="/signin" className="w-full text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 rounded-xl font-medium">

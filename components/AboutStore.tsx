@@ -23,6 +23,7 @@ export default function AboutStore() {
   }
 
   const [settings, setSettings] = useState<StoreSettingsPublic | null>(null)
+  const storeName = settings?.store?.name
 
   useEffect(() => {
     const lang = language === 'ar' ? 'ar' : 'en'
@@ -32,7 +33,11 @@ export default function AboutStore() {
   return (
     <section className="py-12 bg-gray-50 dark:bg-gray-800">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold mb-4 text-center">{t('aboutModernShop')}</h2>
+        <h2 className="text-3xl font-bold mb-4 text-center">
+          {storeName
+            ? (language === 'ar' ? `عن ${storeName}` : `About ${storeName}`)
+            : t('aboutUs')}
+        </h2>
         <p className="text-center mb-8 max-w-2xl mx-auto">
           {settings?.aboutUs || t('aboutStoreDescription')}
         </p>

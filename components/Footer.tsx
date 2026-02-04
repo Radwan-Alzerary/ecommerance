@@ -10,6 +10,7 @@ export default function Footer() {
   const { language } = useLanguage()
   const t = (key: TranslationKey) => translations[language][key]
   const [settings, setSettings] = useState<StoreSettingsPublic | null>(null)
+  const storeName = settings?.store?.name
 
   useEffect(() => {
     const lang = language === 'ar' ? 'ar' : 'en'
@@ -74,7 +75,9 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">&copy; {new Date().getFullYear()} {settings?.store?.name || 'Oro Eshop'}. {t('allRightsReserved')}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            &copy; {new Date().getFullYear()} {storeName ? `${storeName}. ` : ''}{t('allRightsReserved')}
+          </p>
         </div>
       </div>
     </footer>

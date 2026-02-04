@@ -1,9 +1,9 @@
 # SSR Header Implementation - Arabic Store Name/Logo Loading Fix
 
 ## المشكلة الأصلية (Original Problem)
-كان الهيدر يحمل اسم المتجر الافتراضي "Oro Eshop" أولاً، ثم يستبدله باسم المتجر الحقيقي بعد تحميل البيانات من الـ API، مما يسبب تأخير في العرض وتجربة مستخدم سيئة.
+كان الهيدر يحمل اسم المتجر الافتراضي أولاً، ثم يستبدله باسم المتجر الحقيقي بعد تحميل البيانات من الـ API، مما يسبب تأخير في العرض وتجربة مستخدم سيئة.
 
-The header was loading the default store name "Oro Eshop" first, then replacing it with the actual store name after API data loading, causing display delays and poor user experience.
+The header was loading the default store name first, then replacing it with the actual store name after API data loading, causing display delays and poor user experience.
 
 ## الحل المطبق (Implemented Solution)
 
@@ -118,7 +118,7 @@ npm run dev -- --port 3001
 ثم فتح `http://localhost:3001` في المتصفح.
 
 المتوقع:
-- ✅ لا يظهر "Oro Eshop" أبداً
+- ✅ لا يظهر الاسم الافتراضي أبداً
 - ✅ يظهر اسم المتجر الحقيقي فوراً (أو افتراضي إذا لم يتم تعيين اسم)
 - ✅ اللوجو والألوان صحيحة من البداية
 - ✅ تبديل اللغة يعمل فوراً

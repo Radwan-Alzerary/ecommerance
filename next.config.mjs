@@ -5,6 +5,12 @@ const nextConfig = {
   },
   
     images: {
+      domains: [
+        'alamalelectron.oro-system.com',
+        'oro-system.com',
+        'images.unsplash.com',
+        'localhost'
+      ],
       remotePatterns: [
         {
           protocol: 'http',

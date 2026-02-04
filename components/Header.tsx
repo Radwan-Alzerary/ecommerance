@@ -156,6 +156,23 @@ export default function Header({ initialData }: HeaderProps) {
   const [logoImageUrl, setLogoImageUrl] = useState<string>(initialSettings?.logo?.imageUrl || '')
   const [hasSetInitialLanguage, setHasSetInitialLanguage] = useState(false)
 
+  // Sync store settings from SSR initialSettings on language change (and fallback to API if missing)
+  useEffect(() => {
+    const ss = getInitialStoreSettings()
+    if (ss?.store?.name) setStoreName(ss.store.name)
+    if (ss?.logo?.textColor) setLogoTextColor(ss.logo.textColor)
+    if (ss?.logo?.imageUrl) setLogoImageUrl(ss.logo.imageUrl)
+
+    if (!ss) {
+      const lang = language === 'ar' ? 'ar' : 'en'
+      getStoreSettingsPublic(lang).then((resp) => {
+        if (resp?.store?.name) setStoreName(resp.store.name)
+        if (resp?.logo?.textColor) setLogoTextColor(resp.logo.textColor)
+        if (resp?.logo?.imageUrl) setLogoImageUrl(resp.logo.imageUrl)
+      }).catch(() => { })
+    }
+  }, [language])
+
   // Set initial language from SSR if provided (only once)
   useEffect(() => {
     if (!hasSetInitialLanguage && initialDataRef.current?.defaultLanguage && language !== initialDataRef.current.defaultLanguage) {

@@ -1,7 +1,7 @@
 // lib/server-api.ts - Server-side API functions for SSR
 
 import { StoreSettingsPublic } from './api'
-import { getApiUrl } from './apiUrl'
+import { headers } from 'next/headers'
 
 function parseStoreSettingsResponse(data: any): StoreSettingsPublic | null {
   if (!data) return null
@@ -11,10 +11,63 @@ function parseStoreSettingsResponse(data: any): StoreSettingsPublic | null {
   return null
 }
 
+const FALLBACK_API = 'https://oro-system.com/'
+
+const withTrailingSlash = (url: string): string =>
+  url.endsWith('/') ? url : `${url}/`
+
+function deriveFromOroEshopHost(hostname: string): string | null {
+  const MAGIC_SUFFIX = '.oro-eshop.com'
+  if (hostname.endsWith(MAGIC_SUFFIX)) {
+    const tenantSlug = hostname.slice(0, -MAGIC_SUFFIX.length)
+    if (tenantSlug && tenantSlug !== 'www') {
+      return `https://${tenantSlug}.oro-system.com/`
+    }
+  }
+  return null
+}
+
+function deriveFromLocalOrIpHost(hostname: string): string | null {
+  if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+    return `http://${hostname}:3000/`
+  }
+  const ipv4Regex = /^(?:\d{1,3}\.){3}\d{1,3}$/
+  if (ipv4Regex.test(hostname)) {
+    return `http://${hostname}:3000/`
+  }
+  return null
+}
+
+async function resolveApiUrlForServer(): Promise<string> {
+  const envOverride =
+    process.env.API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    process.env.VITE_API_BASE_URL
+
+  if (envOverride) return withTrailingSlash(envOverride)
+
+  try {
+    const h: any = headers()
+    const resolved = typeof h?.then === 'function' ? await h : h
+    const host = resolved?.get?.('host') || ''
+    const hostname = host.split(':')[0]
+
+    const tenantDerived = deriveFromOroEshopHost(hostname)
+    if (tenantDerived) return tenantDerived
+
+    const localOrIp = deriveFromLocalOrIpHost(hostname)
+    if (localOrIp) return localOrIp
+  } catch {
+    // ignore
+  }
+
+  return FALLBACK_API
+}
+
 // Server-side function to fetch store settings
 export async function getStoreSettingsServerSide(lang: 'ar' | 'en' = 'ar'): Promise<StoreSettingsPublic | null> {
   try {
-    const apiUrl = getApiUrl()
+    const apiUrl = await resolveApiUrlForServer()
     const endpoints = [
       `api/online/store-settings/public?lang=${lang}`,
       `online/store-settings/public?lang=${lang}`,
@@ -53,7 +106,7 @@ export async function getStoreSettingsServerSide(lang: 'ar' | 'en' = 'ar'): Prom
 // Server-side function to fetch categories
 export async function getCategoriesServerSide(): Promise<any[]> {
   try {
-    const apiUrl = getApiUrl()
+    const apiUrl = await resolveApiUrlForServer()
     const response = await fetch(`${apiUrl}online/category/getall`, {
       next: { revalidate: 300 }, // Revalidate every 5 minutes
       headers: {
@@ -91,7 +144,7 @@ export async function getCategoriesServerSide(): Promise<any[]> {
 // Server-side function to fetch a single product
 export async function getProductServerSide(id: string) {
   try {
-    const apiUrl = getApiUrl()
+    const apiUrl = await resolveApiUrlForServer()
     const response = await fetch(`${apiUrl}online/food/getOne/${id}`, {
       next: { revalidate: 60 },
       headers: {

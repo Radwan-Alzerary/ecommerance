@@ -549,6 +549,7 @@ export async function getStoreSettingsFull(): Promise<StoreSettingsFull | null> 
 export async function getStoreSettingsByLang(lang: 'ar'|'en' = 'ar'): Promise<StoreSettingsPublic | null> {
     try {
         const res = await api.get<{ success: boolean; data: StoreSettingsPublic }>(`/api/online/store-settings/lang/${lang}`)
+        console.log('[StoreSettings] getStoreSettingsByLang response:', JSON.stringify(res.data, null, 2))
         return res.data.data
     } catch (e) {
         console.error('Failed to fetch store settings by lang:', e)
@@ -559,6 +560,7 @@ export async function getStoreSettingsByLang(lang: 'ar'|'en' = 'ar'): Promise<St
 export async function getStoreSettingsPublic(lang: 'ar'|'en' = 'ar'): Promise<StoreSettingsPublic | null> {
     try {
         const res = await api.get<{ success: boolean; data: StoreSettingsPublic }>(`/api/online/store-settings/public?lang=${lang}`)
+        console.log('[StoreSettings] getStoreSettingsPublic response:', JSON.stringify(res.data, null, 2))
         return res.data.data
     } catch (e) {
         console.error('Failed to fetch store settings public:', e)
@@ -656,9 +658,11 @@ export async function getProductByCategory(idOrName: string): Promise<any> {
                 const parsed = parseCategoryInfoResponse(response.data);
                 if (parsed) return parsed;
             } catch (innerError: any) {
-                if (innerError?.response?.status !== 404) {
-                    throw innerError;
+                // Continue to next endpoint on 404 or 500
+                if (innerError?.response?.status === 404 || innerError?.response?.status === 500) {
+                    continue;
                 }
+                throw innerError;
             }
         }
 

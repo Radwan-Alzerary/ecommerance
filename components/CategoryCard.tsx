@@ -133,7 +133,8 @@ export default function CategoryCard({ name, image, _id, id }: CategoryCardProps
           </motion.div>
 
           {/* Dynamic gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/60" />
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
           <div className="absolute inset-0 bg-gradient-to-t from-purple-900/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
           
           {/* Animated mesh gradient overlay */}

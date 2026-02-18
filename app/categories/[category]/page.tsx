@@ -3,10 +3,12 @@ import Image from 'next/image'
 import ProductGrid from '@/components/ProductGrid'
 import { getProductByCategory } from '@/lib/api'
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { buildAssetUrl } from '@/lib/apiUrl'
 
-export default function CategoryPage({ params }: { params: { category: string } }) {
-  const categoryName = decodeURIComponent(params.category)
+export default function CategoryPage() {
+  const params = useParams<{ category: string }>()
+  const categoryName = decodeURIComponent(params?.category || '')
   const [categoryProduct, setCategoryProduct] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

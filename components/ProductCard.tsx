@@ -43,6 +43,14 @@ export default function ProductCard(props: ProductCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
 
+  // Resolve image URL - handle image as string, {url: string}, or undefined
+  const resolvedImageUrl = (() => {
+    if (!image) return ''
+    if (typeof image === 'string') return buildAssetUrl(image)
+    if (typeof image === 'object' && image.url) return buildAssetUrl(image.url)
+    return buildAssetUrl(image)
+  })()
+
   // Lazy-render the heavy part only when in view
   const { ref, inView } = useInView({ rootMargin: '200px', triggerOnce: true })
 
@@ -125,9 +133,9 @@ export default function ProductCard(props: ProductCardProps) {
   <Link href={`/products/${pid}`} className="relative block h-[240px] overflow-hidden group/image flex-shrink-0">
   <div className="absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-transparent z-10" />
         <div className="relative h-full w-full">
-          {image?.url ? (
+          {resolvedImageUrl ? (
             <Image
-              src={buildAssetUrl(image.url)}
+              src={resolvedImageUrl}
               alt={name}
               fill
               loading="lazy"

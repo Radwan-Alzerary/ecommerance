@@ -260,7 +260,8 @@ export default function HeroSection() {
         style={{ y: parallaxY, scale }}
         className="absolute inset-0 z-0"
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-transparent to-black/30 z-10" />
+        <div className="absolute inset-0 bg-black/40 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/30 z-10" />
         <Swiper
           ref={swiperRef}
           modules={[Navigation, Pagination, Autoplay, EffectFade]}
@@ -299,10 +300,11 @@ export default function HeroSection() {
                   quality={90}
                 />
                 {/* Gradient overlays for different themes */}
+                <div className="absolute inset-0 bg-black/30" />
                 <div className={`absolute inset-0 ${
-                  slide.theme === 'luxury' ? 'bg-gradient-to-r from-black/70 via-black/30 to-transparent' :
-                  slide.theme === 'vibrant' ? 'bg-gradient-to-br from-orange-900/40 via-transparent to-pink-900/40' :
-                  'bg-gradient-to-t from-blue-900/50 via-transparent to-purple-900/30'
+                  slide.theme === 'luxury' ? 'bg-gradient-to-r from-black/60 via-black/30 to-transparent' :
+                  slide.theme === 'vibrant' ? 'bg-gradient-to-br from-orange-900/40 via-black/20 to-pink-900/40' :
+                  'bg-gradient-to-t from-blue-900/50 via-black/20 to-purple-900/30'
                 }`} />
               </motion.div>
             </SwiperSlide>

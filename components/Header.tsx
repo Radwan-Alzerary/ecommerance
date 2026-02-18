@@ -46,6 +46,7 @@ import { useRouter } from 'next/navigation'
 import { Product, NotificationItem } from '../types'
 import { useFavorites } from '../contexts/FavoritesContext'
 import { fetchCategories, getAllProduct, getStoreSettingsPublic, getNotifications, markNotificationRead, markAllNotificationsRead, type StoreSettingsPublic } from '@/lib/api'
+import { buildAssetUrl } from '@/lib/apiUrl'
 
 // Types for initial data
 interface InitialData {
@@ -321,7 +322,7 @@ export default function Header({ initialData }: HeaderProps) {
                   className="flex items-center gap-3"
                 >
                   {logoImageUrl ? (
-                    <img src={logoImageUrl} alt={storeName} className="h-10 w-10 object-contain rounded-2xl shadow-lg" />
+                    <img src={buildAssetUrl(logoImageUrl)} alt={storeName} className="h-10 w-10 object-contain rounded-2xl shadow-lg" />
                   ) : (
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
                       <Sparkles className="w-5 h-5 text-white" />

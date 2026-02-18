@@ -176,10 +176,15 @@ export function buildAssetUrl(path?: unknown): string {
   if (/^https?:\/\//i.test(str) || str.startsWith('data:')) {
     // Fix multi-tenant: replace bare oro-system.com with the tenant-specific domain
     const baseUrl = getApiUrl();
-    if (str.includes('://oro-system.com/') && !str.includes('://oro-system.com/api')) {
+    console.log('[buildAssetUrl] absolute URL detected:', str, '| baseUrl:', baseUrl);
+    // Match oro-system.com without any subdomain (handles both http and https)
+    const bareOroPattern = /^(https?:\/\/)oro-system\.com\//i;
+    if (bareOroPattern.test(str)) {
       const tenantMatch = baseUrl.match(/^https?:\/\/([^.]+)\.oro-system\.com/);
       if (tenantMatch) {
-        return str.replace('://oro-system.com/', `://${tenantMatch[1]}.oro-system.com/`);
+        const fixed = str.replace(bareOroPattern, `$1${tenantMatch[1]}.oro-system.com/`);
+        console.log('[buildAssetUrl] fixed tenant URL:', fixed);
+        return fixed;
       }
     }
     return str;

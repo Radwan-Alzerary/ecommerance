@@ -25,6 +25,7 @@ export default function ProductCard(props: ProductCardProps) {
     name,
     price,
     image,
+    images,
     rating,
     category,
     colors,
@@ -45,7 +46,16 @@ export default function ProductCard(props: ProductCardProps) {
 
   // Resolve image URL - handle image as string, {url: string}, or undefined
   const resolvedImageUrl = (() => {
-    if (!image) return ''
+    if (!image) {
+      // Try images array as fallback
+      if (Array.isArray(images) && images.length > 0) {
+        const firstImg = images[0]
+        if (typeof firstImg === 'string') return buildAssetUrl(firstImg)
+        if (typeof firstImg === 'object' && firstImg.url) return buildAssetUrl(firstImg.url)
+      }
+      console.log('[ProductCard] No image for product:', name, '| image:', image, '| images:', images)
+      return ''
+    }
     if (typeof image === 'string') return buildAssetUrl(image)
     if (typeof image === 'object' && image.url) return buildAssetUrl(image.url)
     return buildAssetUrl(image)

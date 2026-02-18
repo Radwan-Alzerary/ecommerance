@@ -345,6 +345,12 @@ export async function getProductsPaginated(params: PaginatedProductsParams = {})
             ? data
             : (data.data || data.items || data.products || []);
 
+        // Debug: log first product's image field to diagnose image loading
+        if (items.length > 0) {
+            console.log('[getProductsPaginated] Sample product image field:', JSON.stringify(items[0].image), 'name:', items[0].name)
+            console.log('[getProductsPaginated] Sample product images field:', JSON.stringify(items[0].images))
+        }
+
         const pagination = data.pagination || {};
         const total = pagination.total ?? data.total ?? data.count ?? items.length;
         const resolvedPage = pagination.page ?? data.page ?? page;

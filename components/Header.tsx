@@ -46,7 +46,7 @@ import { useRouter } from 'next/navigation'
 import { Product, NotificationItem } from '../types'
 import { useFavorites } from '../contexts/FavoritesContext'
 import { fetchCategories, getAllProduct, getStoreSettingsPublic, getNotifications, markNotificationRead, markAllNotificationsRead, type StoreSettingsPublic } from '@/lib/api'
-import { buildAssetUrl } from '@/lib/apiUrl'
+import { buildAssetUrl, getApiUrl } from '@/lib/apiUrl'
 
 // Types for initial data
 interface InitialData {
@@ -156,6 +156,29 @@ export default function Header({ initialData }: HeaderProps) {
   const [logoTextColor, setLogoTextColor] = useState<string>(initialSettings?.logo?.textColor || '')
   const [logoImageUrl, setLogoImageUrl] = useState<string>(initialSettings?.logo?.imageUrl || '')
   const [hasSetInitialLanguage, setHasSetInitialLanguage] = useState(false)
+
+  // Fix logo URL: ensure it uses the correct tenant subdomain
+  const fixedLogoUrl = (() => {
+    if (!logoImageUrl) return ''
+    let url = logoImageUrl
+    // If relative path, prepend the API base URL
+    if (!url.startsWith('http')) {
+      const base = getApiUrl()
+      url = base + (url.startsWith('/') ? url.slice(1) : url)
+    }
+    // If it's bare oro-system.com (no subdomain), inject the tenant
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname
+      // Extract tenant from oro-eshop.com or oro-system.com
+      const eshopMatch = hostname.match(/^([^.]+)\.oro-eshop\.com$/i)
+      const sysMatch = hostname.match(/^([^.]+)\.oro-system\.com$/i)
+      const tenant = eshopMatch?.[1] || sysMatch?.[1]
+      if (tenant && tenant !== 'www') {
+        url = url.replace(/^(https?:\/\/)oro-system\.com\//i, `$1${tenant}.oro-system.com/`)
+      }
+    }
+    return url
+  })()
 
   // Sync store settings from SSR initialSettings on language change (and fallback to API if missing)
   useEffect(() => {
@@ -321,8 +344,8 @@ export default function Header({ initialData }: HeaderProps) {
                   whileHover={{ scale: 1.05 }}
                   className="flex items-center gap-3"
                 >
-                  {logoImageUrl ? (
-                    <img src={buildAssetUrl(logoImageUrl)} alt={storeName} className="h-10 w-10 object-contain rounded-2xl shadow-lg" />
+                  {fixedLogoUrl ? (
+                    <img src={fixedLogoUrl} alt={storeName} className="h-10 w-10 object-contain rounded-2xl shadow-lg" />
                   ) : (
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
                       <Sparkles className="w-5 h-5 text-white" />

@@ -69,11 +69,27 @@ function getServerHost(): string | null {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { headers } = require('next/headers');
     const h = headers();
-    // Next.js may return a Promise for headers() in newer versions
+    // If Next.js returns a Promise in this runtime, sync resolver can't await it.
     if (typeof (h as any)?.then === 'function') {
       return null;
     }
-    const host = (h as Headers).get('host');
+    const hs = h as Headers;
+    const host = hs.get('x-forwarded-host') || hs.get('host');
+    return host || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Async server-side host resolver for Next.js versions where headers() is async.
+ * Useful in request-scoped code such as axios interceptors.
+ */
+async function getServerHostAsync(): Promise<string | null> {
+  try {
+    const mod = await import('next/headers');
+    const h = await (mod as any).headers();
+    const host = h?.get?.('x-forwarded-host') || h?.get?.('host');
     return host || null;
   } catch {
     return null;
@@ -111,12 +127,13 @@ export function getApiUrl(): string {
     const serverHost = getServerHost();
     if (serverHost) {
       devLog('[config] server host:', serverHost);
-      const tenantDerived = deriveFromOroEshopHost(serverHost);
+      const hostNoPort = serverHost.split(':')[0];
+      const tenantDerived = deriveFromOroEshopHost(hostNoPort);
       if (tenantDerived) {
         devLog('[config] derived (server/tenant) →', tenantDerived);
         return tenantDerived;
       }
-      const localOrIp = deriveFromLocalOrIpHost(serverHost.split(':')[0]);
+      const localOrIp = deriveFromLocalOrIpHost(hostNoPort);
       if (localOrIp) {
         devLog('[config] derived (server/local-ip) →', localOrIp);
         return localOrIp;
@@ -124,6 +141,10 @@ export function getApiUrl(): string {
       devLog('[config] no derivation on server for host', serverHost);
     } else {
       devLog('[config] no server host available');
+      if (process.env.NODE_ENV !== 'production') {
+        devLog('[config] dev fallback (server/no-host) → http://localhost:3000/');
+        return 'http://localhost:3000/';
+      }
     }
   } else {
     const hostname = window.location.hostname; // client
@@ -146,10 +167,41 @@ export function getApiUrl(): string {
   return FALLBACK_API;
 }
 
-/** One resolved constant you can import anywhere in the app. */
-export const API_URL = getApiUrl();
+/**
+ * Async resolver for server request context (multi-tenant aware in Next.js 16+).
+ */
+export async function getApiUrlAsync(): Promise<string> {
+  // Browser path can stay sync
+  if (typeof window !== 'undefined') return getApiUrl();
 
-devLog("[config] final API_URL =", API_URL);
+  const envOverride =
+    process.env.API_BASE_URL ??
+    process.env.NEXT_PUBLIC_API_BASE_URL ??
+    process.env.VITE_API_BASE_URL;
+  if (envOverride) return withTrailingSlash(envOverride);
+
+  const serverHost = await getServerHostAsync();
+  if (serverHost) {
+    const hostNoPort = String(serverHost).split(':')[0];
+    const tenantDerived = deriveFromOroEshopHost(hostNoPort);
+    if (tenantDerived) return tenantDerived;
+    const localOrIp = deriveFromLocalOrIpHost(hostNoPort);
+    if (localOrIp) return localOrIp;
+  }
+
+  if (process.env.NODE_ENV !== 'production') return 'http://localhost:3000/';
+  return FALLBACK_API;
+}
+
+/**
+ * Static bootstrap URL (safe at module load). Real URL is set per request in interceptor.
+ */
+export const API_URL = withTrailingSlash(
+  process.env.API_BASE_URL ??
+  process.env.NEXT_PUBLIC_API_BASE_URL ??
+  process.env.VITE_API_BASE_URL ??
+  (process.env.NODE_ENV !== 'production' ? 'http://localhost:3000/' : FALLBACK_API)
+);
 
 /**
  * Extract the tenant slug from the current browsing context.

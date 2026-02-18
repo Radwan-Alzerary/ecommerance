@@ -14,7 +14,7 @@ import {
     CustomSection,
     NotificationItem
 } from "@/types"; // Adjust path if needed
-import { API_URL, getApiUrl } from './apiUrl'; // Import getApiUrl for per-request baseURL
+import { API_URL, getApiUrl, getApiUrlAsync } from './apiUrl'; // Import runtime baseURL resolvers
 
 // --- Configuration ---
 const AUTH_TOKEN_KEY = 'authToken'; // Key for storing the token in localStorage (fallback for custom auth)
@@ -32,7 +32,11 @@ api.interceptors.request.use(
     async (config) => {
         // Always set baseURL at request time to support dynamic subdomains (SSR & CSR)
         try {
-            config.baseURL = getApiUrl();
+            if (typeof window === 'undefined') {
+                config.baseURL = await getApiUrlAsync();
+            } else {
+                config.baseURL = getApiUrl();
+            }
         } catch (e) {
             // fallback silently to default API_URL if per-request resolution fails
             config.baseURL = API_URL;

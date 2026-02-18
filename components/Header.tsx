@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { signOut } from 'next-auth/react'
@@ -46,7 +46,6 @@ import { useRouter } from 'next/navigation'
 import { Product, NotificationItem } from '../types'
 import { useFavorites } from '../contexts/FavoritesContext'
 import { fetchCategories, getAllProduct, getStoreSettingsPublic, getNotifications, markNotificationRead, markAllNotificationsRead, type StoreSettingsPublic } from '@/lib/api'
-import { buildAssetUrl, getApiUrl } from '@/lib/apiUrl'
 
 // Types for initial data
 interface InitialData {
@@ -156,29 +155,105 @@ export default function Header({ initialData }: HeaderProps) {
   const [logoTextColor, setLogoTextColor] = useState<string>(initialSettings?.logo?.textColor || '')
   const [logoImageUrl, setLogoImageUrl] = useState<string>(initialSettings?.logo?.imageUrl || '')
   const [hasSetInitialLanguage, setHasSetInitialLanguage] = useState(false)
+  const [isClientMounted, setIsClientMounted] = useState(false)
 
-  // Fix logo URL: ensure it uses the correct tenant subdomain
-  const fixedLogoUrl = (() => {
-    if (!logoImageUrl) return ''
-    let url = logoImageUrl
-    // If relative path, prepend the API base URL
-    if (!url.startsWith('http')) {
-      const base = getApiUrl()
-      url = base + (url.startsWith('/') ? url.slice(1) : url)
+  useEffect(() => {
+    setIsClientMounted(true)
+  }, [])
+
+  // Single-source logo URL resolution based on the currently opened hostname
+  const fixedLogoUrl = useMemo(() => {
+    const raw = (logoImageUrl || '').trim()
+    if (!raw) return ''
+
+    // IMPORTANT: never resolve or render logo URL before real client mount.
+    // This prevents any premature request before hostname-based URL mapping is ready.
+    if (!isClientMounted || typeof window === 'undefined') {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[Header][LogoDebug] client not mounted yet, skip logo URL resolution')
+      }
+      return ''
     }
-    // If it's bare oro-system.com (no subdomain), inject the tenant
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname
-      // Extract tenant from oro-eshop.com or oro-system.com
-      const eshopMatch = hostname.match(/^([^.]+)\.oro-eshop\.com$/i)
-      const sysMatch = hostname.match(/^([^.]+)\.oro-system\.com$/i)
-      const tenant = eshopMatch?.[1] || sysMatch?.[1]
-      if (tenant && tenant !== 'www') {
-        url = url.replace(/^(https?:\/\/)oro-system\.com\//i, `$1${tenant}.oro-system.com/`)
+
+    const hostname = window.location.hostname.toLowerCase()
+    const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+    const localBase = isLocalHost ? `http://${hostname}:3000` : ''
+
+    const eshopMatch = hostname.match(/^([^.]+)\.oro-eshop\.com$/i)
+    const systemMatch = hostname.match(/^([^.]+)\.oro-system\.com$/i)
+    const tenant = (eshopMatch?.[1] && eshopMatch[1] !== 'www')
+      ? eshopMatch[1]
+      : (systemMatch?.[1] && systemMatch[1] !== 'www' ? systemMatch[1] : '')
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Header][LogoDebug] raw logoImageUrl:', raw)
+      console.log('[Header][LogoDebug] window hostname:', window.location.hostname)
+      console.log('[Header][LogoDebug] is localhost:', isLocalHost)
+      console.log('[Header][LogoDebug] local base:', localBase || 'none')
+      console.log('[Header][LogoDebug] tenant from host:', tenant || 'none')
+    }
+
+    // 1) Localhost: always use localhost:3000
+    if (isLocalHost) {
+      if (!/^https?:\/\//i.test(raw) && !raw.startsWith('data:')) {
+        const resolved = `${localBase}/${raw.replace(/^\/+/, '')}`
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[Header][LogoDebug] resolved -> localhost relative URL:', resolved)
+        }
+        return resolved
+      }
+
+      try {
+        const parsed = new URL(raw)
+        const resolved = `${localBase}${parsed.pathname}${parsed.search}`
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[Header][LogoDebug] resolved -> localhost absolute URL:', resolved)
+        }
+        return resolved
+      } catch {
+        return raw
       }
     }
-    return url
-  })()
+
+    // 2) Tenant host: force <tenant>.oro-system.com
+    if (tenant) {
+      const targetBase = `https://${tenant}.oro-system.com`
+
+      if (!/^https?:\/\//i.test(raw) && !raw.startsWith('data:')) {
+        const resolved = `${targetBase}/${raw.replace(/^\/+/, '')}`
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[Header][LogoDebug] resolved -> tenant relative URL:', resolved)
+        }
+        return resolved
+      }
+
+      try {
+        const parsed = new URL(raw)
+        const resolved = `${targetBase}${parsed.pathname}${parsed.search}`
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[Header][LogoDebug] resolved -> tenant absolute URL:', resolved)
+        }
+        return resolved
+      } catch {
+        return raw
+      }
+    }
+
+    // 3) Non-tenant/non-localhost: keep as-is
+    if (!/^https?:\/\//i.test(raw) && !raw.startsWith('data:')) {
+      const resolved = `https://oro-system.com/${raw.replace(/^\/+/, '')}`
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[Header][LogoDebug] resolved -> generic URL:', resolved)
+      }
+      return resolved
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Header][LogoDebug] absolute URL unchanged:', raw)
+    }
+
+    return raw
+  }, [logoImageUrl, isClientMounted])
 
   // Sync store settings from SSR initialSettings on language change (and fallback to API if missing)
   useEffect(() => {
@@ -345,7 +420,11 @@ export default function Header({ initialData }: HeaderProps) {
                   className="flex items-center gap-3"
                 >
                   {fixedLogoUrl ? (
-                    <img src={fixedLogoUrl} alt={storeName} className="h-10 w-10 object-contain rounded-2xl shadow-lg" />
+                    <img
+                      src={fixedLogoUrl}
+                      alt={storeName}
+                      className="h-10 w-10 object-contain rounded-2xl shadow-lg"
+                    />
                   ) : (
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
                       <Sparkles className="w-5 h-5 text-white" />

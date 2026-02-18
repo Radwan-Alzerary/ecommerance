@@ -173,7 +173,17 @@ export function buildAssetUrl(path?: unknown): string {
   const str = path as string;
   if (!str) return '';
   // Already absolute or data URI
-  if (/^https?:\/\//i.test(str) || str.startsWith('data:')) return str;
+  if (/^https?:\/\//i.test(str) || str.startsWith('data:')) {
+    // Fix multi-tenant: replace bare oro-system.com with the tenant-specific domain
+    const baseUrl = getApiUrl();
+    if (str.includes('://oro-system.com/') && !str.includes('://oro-system.com/api')) {
+      const tenantMatch = baseUrl.match(/^https?:\/\/([^.]+)\.oro-system\.com/);
+      if (tenantMatch) {
+        return str.replace('://oro-system.com/', `://${tenantMatch[1]}.oro-system.com/`);
+      }
+    }
+    return str;
+  }
   const baseUrl = getApiUrl();
   return baseUrl + (str.startsWith('/') ? str.slice(1) : str);
 }

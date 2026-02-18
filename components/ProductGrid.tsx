@@ -37,6 +37,7 @@ import {
 
 interface ProductGridProps {
   products: Product[]
+  isExternalLoading?: boolean
   useServerPagination?: boolean
   serverPagination?: {
     page: number
@@ -166,6 +167,7 @@ const DualRangeSlider = ({ min, max, value, onChange, step = 1 }: DualRangeSlide
 
 export default function ProductGrid({
   products,
+  isExternalLoading = false,
   useServerPagination = false,
   serverPagination,
   onPageChange,
@@ -932,10 +934,19 @@ export default function ProductGrid({
             </AnimatePresence>
 
             {/* Products Grid */}
-            {!isLoading && (
+            <div className="relative">
+              {/* Loading overlay - keeps grid mounted */}
+              {(isLoading || isExternalLoading) && (
+                <div className="absolute inset-0 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm z-10 flex items-center justify-center min-h-[200px] rounded-2xl">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto mb-3"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">جاري تحميل المنتجات...</p>
+                  </div>
+                </div>
+              )}
               <motion.div
                 initial={{ opacity: 1, y: 0 }}
-                animate={{ opacity: 1, y: 0 }}
+                animate={{ opacity: (isLoading || isExternalLoading) ? 0.3 : 1, y: 0 }}
                 transition={{ duration: 0.2 }}
                 className={`grid gap-6 ${
                   viewMode === 'grid' 
@@ -949,7 +960,7 @@ export default function ProductGrid({
                   </div>
                 ))}
               </motion.div>
-            )}
+            </div>
 
             {!isLoading && filteredProducts.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8">

@@ -152,6 +152,26 @@ export const API_URL = getApiUrl();
 devLog("[config] final API_URL =", API_URL);
 
 /**
+ * Extract the tenant slug from the current browsing context.
+ * Works for both oro-eshop.com (frontend) and oro-system.com (api) hostnames.
+ */
+function getTenantSlug(): string | null {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // e.g. alamalelectron.oro-eshop.com → alamalelectron
+    const eshopMatch = hostname.match(/^([^.]+)\.oro-eshop\.com$/i);
+    if (eshopMatch && eshopMatch[1] !== 'www') return eshopMatch[1];
+    // e.g. alamalelectron.oro-system.com → alamalelectron
+    const systemMatch = hostname.match(/^([^.]+)\.oro-system\.com$/i);
+    if (systemMatch && systemMatch[1] !== 'www') return systemMatch[1];
+  }
+  // Fallback: try from getApiUrl()
+  const baseUrl = getApiUrl();
+  const match = baseUrl.match(/^https?:\/\/([^.]+)\.oro-system\.com/);
+  return match ? match[1] : null;
+}
+
+/**
  * Safely build a full URL for assets (e.g. images) coming from the API.
  * Accepts either already absolute URLs or relative paths returned by backend.
  */
@@ -175,16 +195,11 @@ export function buildAssetUrl(path?: unknown): string {
   // Already absolute or data URI
   if (/^https?:\/\//i.test(str) || str.startsWith('data:')) {
     // Fix multi-tenant: replace bare oro-system.com with the tenant-specific domain
-    const baseUrl = getApiUrl();
-    console.log('[buildAssetUrl] absolute URL detected:', str, '| baseUrl:', baseUrl);
-    // Match oro-system.com without any subdomain (handles both http and https)
     const bareOroPattern = /^(https?:\/\/)oro-system\.com\//i;
     if (bareOroPattern.test(str)) {
-      const tenantMatch = baseUrl.match(/^https?:\/\/([^.]+)\.oro-system\.com/);
-      if (tenantMatch) {
-        const fixed = str.replace(bareOroPattern, `$1${tenantMatch[1]}.oro-system.com/`);
-        console.log('[buildAssetUrl] fixed tenant URL:', fixed);
-        return fixed;
+      const tenant = getTenantSlug();
+      if (tenant) {
+        return str.replace(bareOroPattern, `$1${tenant}.oro-system.com/`);
       }
     }
     return str;

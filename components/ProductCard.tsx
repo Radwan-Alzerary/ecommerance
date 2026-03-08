@@ -31,6 +31,9 @@ export default function ProductCard(props: ProductCardProps) {
     colors,
     sizes,
     description,
+    discount,
+    secenderyPrice,
+    priceCurrency,
   } = props
 
   const { addToCart } = useCart()
@@ -88,6 +91,49 @@ export default function ProductCard(props: ProductCardProps) {
   const plainDescription = typeof description === 'string'
     ? description.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
     : ''
+
+  const basePrice = Number(price) || 0
+  const discountValue = Number(discount) || 0
+  const secondaryPriceValue = Number(secenderyPrice) || 0
+  const hasDiscountByAmount = discountValue > 0 && basePrice > 0 && discountValue < basePrice
+  const hasDiscountBySecondaryPrice = secondaryPriceValue > 0 && secondaryPriceValue < basePrice
+  const finalPrice = hasDiscountByAmount
+    ? basePrice - discountValue
+    : hasDiscountBySecondaryPrice
+      ? secondaryPriceValue
+      : basePrice
+  const hasActiveDiscount = finalPrice < basePrice
+  const displayCurrency = (priceCurrency || 'iqd').toLowerCase() === 'usd' ? '$' : 'د.ع'
+  const categoryDiscount = category?.categoryDiscount
+  const categoryDiscountValue = Number(categoryDiscount?.value) || 0
+  const hasCategoryDiscount = Boolean(categoryDiscount?.enabled && categoryDiscountValue > 0 && hasActiveDiscount)
+
+  const categoryDiscountBadge = (() => {
+    if (!hasCategoryDiscount) return ''
+
+    if (categoryDiscount?.type === 'fixed') {
+      if ((priceCurrency || 'iqd').toLowerCase() === 'usd') {
+        return language === 'ar'
+          ? `خصم القسم ${displayCurrency} ${categoryDiscountValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          : `Category ${displayCurrency} ${categoryDiscountValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} off`
+      }
+
+      return language === 'ar'
+        ? `خصم القسم ${Math.round(categoryDiscountValue).toLocaleString()} ${displayCurrency}`
+        : `Category ${displayCurrency} ${Math.round(categoryDiscountValue).toLocaleString()} off`
+    }
+
+    return language === 'ar'
+      ? `خصم القسم ${categoryDiscountValue}%`
+      : `Category ${categoryDiscountValue}% off`
+  })()
+
+  const formatPrice = (value: number) => {
+    if ((priceCurrency || 'iqd').toLowerCase() === 'usd') {
+      return `${displayCurrency} ${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
+    return `${displayCurrency} ${Math.round(value).toLocaleString()}`
+  }
 
   const renderStars = (score: number) => {
     if (score === undefined) return null
@@ -329,13 +375,25 @@ export default function ProductCard(props: ProductCardProps) {
         <div className="flex-1"></div>
 
         {/* Price and action section - Fixed height */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800 h-[54px]">
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800 h-[68px]">
           <div className="flex flex-col justify-center">
             <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-              د.ع {price?.toLocaleString()}
+              {formatPrice(finalPrice)}
             </p>
-            <p className="text-xs text-gray-500 h-[16px] leading-none">
-              {sizes && sizes.length > 0 ? (
+            <p className="text-xs text-gray-500 h-[32px] leading-tight flex flex-col gap-1">
+              {hasActiveDiscount ? (
+                <>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="line-through text-gray-400">{formatPrice(basePrice)}</span>
+                    <span className="text-rose-600 font-semibold">- {formatPrice(basePrice - finalPrice)}</span>
+                  </span>
+                  {hasCategoryDiscount && (
+                    <span className="inline-flex items-center w-fit rounded-full bg-amber-100 text-amber-800 px-2 py-[2px] text-[10px] font-semibold">
+                      {categoryDiscountBadge}
+                    </span>
+                  )}
+                </>
+              ) : sizes && sizes.length > 0 ? (
                 `${sizes.length} size${sizes.length > 1 ? 's' : ''} available`
               ) : (
                 'Available now'

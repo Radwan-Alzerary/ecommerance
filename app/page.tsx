@@ -3,6 +3,7 @@
 import HeroSection from '@/components/HeroSection'
 import NewArrivals from '@/components/NewArrivals'
 import BestSellers from '@/components/BestSellers'
+import OffersSection from '@/components/OffersSection'
 import CategoryCard from '@/components/CategoryCard'
 import SimpleCustomSections from '@/components/SimpleCustomSections'
 import AboutStore from '@/components/AboutStore'
@@ -27,6 +28,7 @@ export default function Home() {
     <div>
       <HeroSection />
       <div className="container mx-auto px-4">
+      <OffersSection />
       <NewArrivals />
       <BestSellers />
       

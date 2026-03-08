@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect, useRef, useMemo } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { signOut } from 'next-auth/react'
@@ -154,6 +155,7 @@ export default function Header({ initialData }: HeaderProps) {
   const [storeName, setStoreName] = useState<string>(initialSettings?.store?.name || 'Oro Eshop')
   const [logoTextColor, setLogoTextColor] = useState<string>(initialSettings?.logo?.textColor || '')
   const [logoImageUrl, setLogoImageUrl] = useState<string>(initialSettings?.logo?.imageUrl || '')
+  const [logoImageError, setLogoImageError] = useState(false)
   const [hasSetInitialLanguage, setHasSetInitialLanguage] = useState(false)
   const [isClientMounted, setIsClientMounted] = useState(false)
 
@@ -254,6 +256,10 @@ export default function Header({ initialData }: HeaderProps) {
 
     return raw
   }, [logoImageUrl, isClientMounted])
+
+  useEffect(() => {
+    setLogoImageError(false)
+  }, [fixedLogoUrl])
 
   // Sync store settings from SSR initialSettings on language change (and fallback to API if missing)
   useEffect(() => {
@@ -378,6 +384,18 @@ export default function Header({ initialData }: HeaderProps) {
     { icon: Settings, label: 'Settings', href: '/settings', color: 'text-purple-500' },
   ]
 
+  const submitHeaderSearch = () => {
+    const q = searchQuery.trim()
+    if (!q) {
+      router.push('/products')
+      setIsSearchOpen(false)
+      return
+    }
+
+    router.push(`/products?search=${encodeURIComponent(q)}`)
+    setIsSearchOpen(false)
+  }
+
   return (
     <>
       {/* Header */}
@@ -419,11 +437,15 @@ export default function Header({ initialData }: HeaderProps) {
                   whileHover={{ scale: 1.05 }}
                   className="flex items-center gap-3"
                 >
-                  {fixedLogoUrl ? (
-                    <img
+                  {fixedLogoUrl && !logoImageError ? (
+                    <Image
                       src={fixedLogoUrl}
                       alt={storeName}
+                      width={40}
+                      height={40}
+                      onError={() => setLogoImageError(true)}
                       className="h-10 w-10 object-contain rounded-2xl shadow-lg"
+                      unoptimized={false}
                     />
                   ) : (
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
@@ -565,9 +587,22 @@ export default function Header({ initialData }: HeaderProps) {
                               placeholder={`${t('search')} products...`}
                               value={searchQuery}
                               onChange={(e) => setSearchQuery(e.target.value)}
-                              className="w-full pl-10 pr-4 h-12 bg-gray-50/80 dark:bg-gray-700/80 border-gray-200 dark:border-gray-600 rounded-2xl focus:ring-2 focus:ring-blue-500/20"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault()
+                                  submitHeaderSearch()
+                                }
+                              }}
+                              className="w-full pl-10 pr-24 h-12 bg-gray-50/80 dark:bg-gray-700/80 border-gray-200 dark:border-gray-600 rounded-2xl focus:ring-2 focus:ring-blue-500/20"
                               autoFocus
                             />
+                            <Button
+                              size="sm"
+                              onClick={submitHeaderSearch}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 rounded-xl px-3"
+                            >
+                              {language === 'ar' ? 'بحث' : 'Search'}
+                            </Button>
                           </div>
 
                           {/* Search Results */}
@@ -586,6 +621,12 @@ export default function Header({ initialData }: HeaderProps) {
                                   }}
                                 />
                               ))}
+                            </div>
+                          )}
+
+                          {searchQuery.trim().length > 2 && searchResults.length === 0 && (
+                            <div className="mt-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-3 text-sm text-gray-500 dark:text-gray-400">
+                              {language === 'ar' ? 'لا توجد نتائج مطابقة. اضغط بحث لعرض صفحة النتائج.' : 'No matching suggestions. Press Search to open results page.'}
                             </div>
                           )}
 

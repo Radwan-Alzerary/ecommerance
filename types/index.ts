@@ -23,6 +23,7 @@ export interface Product {
   alertBeforeDays?: number;
   costCurrency?: string;
   discount?: number;
+  finalPrice?: number;
   printable?: boolean;
   packageCheck?: boolean;
   boxPrice?: number;
@@ -73,6 +74,11 @@ export interface Category {
   id: string;
   name: string;
   image: string;
+  categoryDiscount?: {
+    enabled?: boolean;
+    type?: 'percentage' | 'fixed';
+    value?: number;
+  };
 }
 
 
@@ -94,7 +100,7 @@ export interface HeroSlide {
   fallbackImage: string;
   link: string;
   buttonText: string;
-  theme: 'luxury' | 'vibrant' | 'futuristic';
+  theme: 'luxury' | 'vibrant' | 'modern' | 'futuristic';
   stats: {
     label: string;
     value: string;
@@ -140,7 +146,7 @@ export interface CustomSection {
       tablet: number;
       desktop: number;
     };
-    layout: 'grid' | 'carousel' | 'list';
+    layout: 'grid' | 'carousel' | 'list' | 'masonry' | 'spotlight' | 'compact';
     maxProducts?: number;
     showPagination?: boolean;
     showSorting?: boolean;
@@ -148,7 +154,7 @@ export interface CustomSection {
     autoplayDelay?: number;
     showNavigation?: boolean;
     spaceBetween?: number;
-    displayType?: 'grid' | 'carousel' | 'list';
+    displayType?: 'grid' | 'carousel' | 'list' | 'masonry' | 'spotlight' | 'compact';
     showTitle?: boolean;
     showDescription?: boolean;
     showAddToCart?: boolean;

@@ -5,26 +5,44 @@ import AuthProvider from '@/components/AuthProvider'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { getStoreSettingsServerSide, getCategoriesServerSide } from '@/lib/server-api'
+import { getApiUrlAsync } from '@/lib/apiUrl'
 import { headers } from 'next/headers'
 
 const cairo = Cairo({ subsets: ['latin', 'arabic'] })
 
 // Dynamic metadata generation based on store settings
 export async function generateMetadata() {
-  const storeSettings = await getStoreSettingsServerSide('en')
+  const [storeSettings, apiBaseUrl] = await Promise.all([
+    getStoreSettingsServerSide('en'),
+    getApiUrlAsync()
+  ])
   
-  const title = storeSettings?.store?.name 
-    ? `${storeSettings.store.name} - Your Ultimate E-commerce Destination`
-    : 'ModernShop - Your Ultimate E-commerce Destination'
+  const projectName = storeSettings?.store?.name?.trim() || 'ModernShop'
     
   const description = storeSettings?.store?.description 
     || storeSettings?.seo?.metaDescription
     || 'Discover the latest trends and high-quality products'
 
+  const rawLogoPath = storeSettings?.logo?.imageUrl?.trim() || ''
+  const normalizedLogoPath = rawLogoPath.startsWith('//')
+    ? rawLogoPath.replace(/^\/+/, '/')
+    : rawLogoPath
+
+  const faviconUrl = normalizedLogoPath
+    ? (normalizedLogoPath.startsWith('http://') || normalizedLogoPath.startsWith('https://')
+      ? normalizedLogoPath
+      : `${apiBaseUrl}${normalizedLogoPath.replace(/^\/+/, '')}`)
+    : '/favicon.ico'
+
   return {
-    title,
+    title: projectName,
     description,
     keywords: storeSettings?.seo?.keywords || ['ecommerce', 'shopping', 'online store'],
+    icons: {
+      icon: [{ url: faviconUrl }],
+      shortcut: [{ url: faviconUrl }],
+      apple: [{ url: faviconUrl }]
+    }
   }
 }
 

@@ -23,7 +23,7 @@ export default function NewArrivals() {
 
   useEffect(() => {
     async function fetchNewArrivals() {
-      const products = await getNewArrivals()
+      const products = await getNewArrivals(30)
       setNewArrivals(products)
     }
     fetchNewArrivals()

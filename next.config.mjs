@@ -1,7 +1,20 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
+  },
+
+  turbopack: {
+    // Prevent Next from inferring monorepo root and resolving deps from parent workspace.
+    root: __dirname,
+    resolveAlias: {
+      tailwindcss: path.resolve(__dirname, 'node_modules/tailwindcss'),
+    },
   },
   
     images: {

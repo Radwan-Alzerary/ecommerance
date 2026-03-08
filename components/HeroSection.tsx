@@ -225,8 +225,7 @@ export default function HeroSection() {
               <p className="text-yellow-400 font-semibold mb-2">Developer Info:</p>
               <p className="text-gray-300">
                 Missing API endpoints:<br/>
-                • <code>/online/hero-slides</code><br/>
-                • <code>/api/hero-slides</code><br/>
+                • <code>/api/hero-slides/public</code><br/>
                 <br/>
                 Check <code>BACKEND_SETUP_REQUIRED.md</code> for setup instructions.
               </p>

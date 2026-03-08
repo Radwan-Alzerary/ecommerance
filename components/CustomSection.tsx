@@ -89,6 +89,54 @@ export default function CustomSection({ section }: CustomSectionProps) {
     </div>
   )
 
+  const renderMasonry = () => (
+    <div className="columns-1 md:columns-2 xl:columns-3 gap-6 [column-fill:balance]">
+      {displayProducts.map((product) => (
+        <div key={product.id} className="mb-6 break-inside-avoid">
+          <ProductCard {...product} />
+        </div>
+      ))}
+    </div>
+  )
+
+  const renderSpotlight = () => {
+    const first = displayProducts[0]
+    const rest = displayProducts.slice(1)
+
+    if (!first) return null
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <ProductCard {...first} />
+        </div>
+        {rest.length > 0 && (
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {rest.map((product) => (
+              <ProductCard key={product.id} {...product} />
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const renderCompact = () => (
+    <div className="space-y-3">
+      {displayProducts.map((product) => (
+        <motion.div
+          key={product.id}
+          className="p-3 border rounded-lg hover:shadow-sm transition"
+          initial={{ opacity: 0, x: -12 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <ProductCard {...product} />
+        </motion.div>
+      ))}
+    </div>
+  )
+
   const renderCarousel = () => {
     const itemsPerRow = section.settings.itemsPerRow
     const slidesPerView = typeof itemsPerRow === 'object' ? itemsPerRow.desktop : 4
@@ -220,6 +268,9 @@ export default function CustomSection({ section }: CustomSectionProps) {
             {displayType === 'grid' && renderGrid()}
             {displayType === 'carousel' && renderCarousel()}
             {displayType === 'list' && renderList()}
+            {displayType === 'masonry' && renderMasonry()}
+            {displayType === 'spotlight' && renderSpotlight()}
+            {displayType === 'compact' && renderCompact()}
           </>
         ) : (
           <div className="text-center py-12 text-gray-500">

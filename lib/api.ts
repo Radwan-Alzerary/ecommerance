@@ -102,6 +102,38 @@ function getErrorMessage(error: any): string {
     return error.message || "An unknown error occurred.";
 }
 
+function normalizeApiImagePath(input: any, folderName: string, fallback = ''): string {
+    if (input == null) return fallback;
+
+    let value = String(input).trim();
+    if (!value) return fallback;
+
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+        try {
+            const parsed = new URL(value);
+            value = `${parsed.pathname || ''}${parsed.search || ''}` || fallback;
+        } catch {
+            return value;
+        }
+    }
+
+    if (!value) return fallback;
+
+    if (value.startsWith('//img/') || value.startsWith('//uploads/')) {
+        value = value.replace(/^\/+/, '/');
+    }
+
+    if (value.startsWith('/uploads/') || value.startsWith('/img/')) {
+        return value;
+    }
+
+    if (value.startsWith('/')) {
+        return value;
+    }
+
+    return `/uploads/${folderName}/${value}`;
+}
+
 
 // --- Authentication API Functions ---
 // (Modified signInUser and signOutUser for token handling)
@@ -445,13 +477,25 @@ export async function getProduct(id: string): Promise<Product | undefined> {
 }
  
 
-export async function getNewArrivals(): Promise<Product[]> {
+export async function getNewArrivals(limit = 30): Promise<Product[]> {
     try {
-        const response = await api.get<Product[]>('/online/food/getNewArrivals')
+        const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 30
+        const response = await api.get<Product[]>(`/online/food/getNewArrivals?limit=${safeLimit}`)
         return response.data
     } catch (error: any) {
         console.error("Failed to fetch new arrivals:", error)
         return [] // Original logic: return empty array
+    }
+}
+
+export async function getOffersProducts(limit = 20): Promise<Product[]> {
+    try {
+        const safeLimit = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 100) : 20
+        const response = await api.get<Product[]>(`/online/food/getOffers?limit=${safeLimit}`)
+        return response.data
+    } catch (error: any) {
+        console.error("Failed to fetch offers products:", error)
+        return []
     }
 }
 
@@ -469,35 +513,42 @@ export async function getTopSellers(): Promise<Product[]> {
 
 export async function getHeroSlides(): Promise<HeroSlide[]> {
     try {
-        // Try the online market endpoint first
-        const response = await api.get<{success: boolean, data: HeroSlide[]} | HeroSlide[]>('/online/hero-slides')
-        
-        // Handle both response formats
-        if (Array.isArray(response.data)) {
-            return response.data
-        } else if (response.data.success) {
-            return response.data.data
-        } else {
-            throw new Error('Failed to fetch hero slides from server')
+        const response = await api.get<{success: boolean, data: any[]} | any[]>('/api/hero-slides/public')
+
+        const rawSlides = Array.isArray(response.data)
+            ? response.data
+            : (response.data?.success ? response.data.data : []);
+
+        if (!Array.isArray(rawSlides)) {
+            throw new Error('Invalid hero slides response format from server');
         }
+
+        // Normalize server fields to frontend shape.
+        return rawSlides.map((slide: any, index: number) => ({
+            id: slide.id ?? slide._id ?? index,
+            title: slide.title || '',
+            subtitle: slide.subtitle || '',
+            description: slide.description || '',
+            image: normalizeApiImagePath(slide.image || slide.imageUrl, 'hero-slides', ''),
+            fallbackImage: normalizeApiImagePath(
+                slide.fallbackImage || slide.fallbackImageUrl,
+                'hero-slides',
+                '/img/default-hero.jpg'
+            ),
+            link: slide.link || '/products',
+            buttonText: slide.buttonText || 'Shop Now',
+            theme: slide.theme || 'modern',
+            stats: {
+                label: slide?.stats?.label || '',
+                value: slide?.stats?.value || ''
+            },
+            translations: slide.translations,
+            isActive: slide.isActive !== false,
+            order: slide.order ?? slide.sortOrder ?? index
+        } as HeroSlide));
     } catch (error: any) {
-        console.error("Online hero slides endpoint not available:", error)
-        
-        // Try the API endpoint as fallback
-        try {
-            const fallbackResponse = await api.get<{success: boolean, data: HeroSlide[]} | HeroSlide[]>('/api/hero-slides')
-            
-            if (Array.isArray(fallbackResponse.data)) {
-                return fallbackResponse.data
-            } else if (fallbackResponse.data.success) {
-                return fallbackResponse.data.data
-            }
-        } catch (fallbackError) {
-            console.error("API hero slides endpoint also not available:", fallbackError)
-        }
-        
-        // If both endpoints fail, throw error to show the error state in component
-        throw new Error('Hero slides API endpoints are not available. Please ensure the backend routes are properly deployed.')
+        console.error("Hero slides endpoint not available:", error)
+        throw new Error('Hero slides API is not available. Please ensure `/api/hero-slides/public` is reachable.')
     }
 }
 
@@ -546,6 +597,36 @@ export interface StoreSettingsPublic {
     logo: { type: 'text'|'text-circle'|'image'|'image-text'; textColor: string; imageUrl?: string }
 }
 
+export interface WebsiteOffersConfig {
+    enabled?: boolean
+    title?: Bilingual
+    subtitle?: Bilingual
+    maxProducts?: number
+    slidesPerView?: {
+        mobile?: number
+        tablet?: number
+        desktop?: number
+    }
+    autoplay?: boolean
+    showNavigation?: boolean
+    spaceBetween?: number
+}
+
+export interface WebsiteConfigPublic {
+    offers?: WebsiteOffersConfig
+    [key: string]: any
+}
+
+export async function getWebsiteConfig(): Promise<WebsiteConfigPublic | null> {
+    try {
+        const res = await api.get<{ success: boolean; data: WebsiteConfigPublic }>('/api/website/config')
+        return res.data?.success ? res.data.data : null
+    } catch (error) {
+        console.error('Failed to fetch website config:', error)
+        return null
+    }
+}
+
 export async function getStoreSettingsFull(): Promise<StoreSettingsFull | null> {
     try {
         const res = await api.get<{ success: boolean; data: StoreSettingsFull }>(`/api/online/store-settings`)
@@ -560,7 +641,15 @@ export async function getStoreSettingsByLang(lang: 'ar'|'en' = 'ar'): Promise<St
     try {
         const res = await api.get<{ success: boolean; data: StoreSettingsPublic }>(`/api/online/store-settings/lang/${lang}`)
         console.log('[StoreSettings] getStoreSettingsByLang response:', JSON.stringify(res.data, null, 2))
-        return res.data.data
+        const data = res.data.data
+        if (!data) return null
+        return {
+            ...data,
+            logo: {
+                ...data.logo,
+                imageUrl: normalizeApiImagePath(data.logo?.imageUrl, 'store-logos', '') || undefined
+            }
+        }
     } catch (e) {
         console.error('Failed to fetch store settings by lang:', e)
         return null
@@ -571,7 +660,15 @@ export async function getStoreSettingsPublic(lang: 'ar'|'en' = 'ar'): Promise<St
     try {
         const res = await api.get<{ success: boolean; data: StoreSettingsPublic }>(`/api/online/store-settings/public?lang=${lang}`)
         console.log('[StoreSettings] getStoreSettingsPublic response:', JSON.stringify(res.data, null, 2))
-        return res.data.data
+        const data = res.data.data
+        if (!data) return null
+        return {
+            ...data,
+            logo: {
+                ...data.logo,
+                imageUrl: normalizeApiImagePath(data.logo?.imageUrl, 'store-logos', '') || undefined
+            }
+        }
     } catch (e) {
         console.error('Failed to fetch store settings public:', e)
         return null

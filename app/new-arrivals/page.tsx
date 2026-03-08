@@ -16,8 +16,8 @@ export default function NewArrivalsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const products = await getNewArrivals();
-        setNewArrivals(products.slice(0, 8));
+        const products = await getNewArrivals(30);
+        setNewArrivals(products);
       } catch (e) {
         console.error('Failed to fetch new arrivals', e);
       }

@@ -26,6 +26,7 @@ import { buildAssetUrl } from '@/lib/apiUrl'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import RelatedProducts from './RelatedProducts'
 import { useStoreFeatures } from '@/contexts/StoreFeaturesContext'
+import DOMPurify from 'dompurify'
 
 const translations = {
   en: {
@@ -431,11 +432,9 @@ export default function ProductProfile({ product }: ProductProfileProps) {
             </TabsList>
             
             <TabsContent value="description" className="mt-8">
-              <div className="prose dark:prose-invert max-w-none">
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
-                  {product.description || 'لا يوجد وصف متاح لهذا المنتج.'}
-                </p>
-              </div>
+              <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-400 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(product.description || 'لا يوجد وصف متاح لهذا المنتج.') }}
+              />
             </TabsContent>
             
             <TabsContent value="specifications" className="mt-8">

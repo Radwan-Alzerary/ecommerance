@@ -15,6 +15,7 @@ import { buildAssetUrl } from '@/lib/apiUrl'
 import { useInView } from 'react-intersection-observer'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useStoreFeatures } from '@/contexts/StoreFeaturesContext'
 
 interface ProductCardProps extends Product {}
 
@@ -41,6 +42,7 @@ export default function ProductCard(props: ProductCardProps) {
   const { language } = useLanguage()
   const t = (key: string) => (translations as any)[language]?.[key] || key
   const router = useRouter()
+  const { enableCart } = useStoreFeatures()
 
   const pid = _id || id || ''
   const isFav = isFavorite(pid)
@@ -285,6 +287,7 @@ export default function ProductCard(props: ProductCardProps) {
           >
             <Eye className="h-4 w-4" />
           </Button>
+          {enableCart !== false && (
           <Button
             variant="ghost"
             size="icon"
@@ -293,6 +296,7 @@ export default function ProductCard(props: ProductCardProps) {
           >
             <ShoppingCart className="h-4 w-4" />
           </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"

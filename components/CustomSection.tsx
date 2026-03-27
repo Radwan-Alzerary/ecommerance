@@ -10,6 +10,7 @@ import ProductCard from './ProductCard'
 import { Button } from './ui/button'
 import { useLanguage } from '@/contexts/LanguageContext'
 import { useRouter } from 'next/navigation'
+import { useStoreFeatures } from '@/contexts/StoreFeaturesContext'
 
 import 'swiper/css'
 import 'swiper/css/navigation'
@@ -22,6 +23,7 @@ interface CustomSectionProps {
 export default function CustomSection({ section }: CustomSectionProps) {
   const { language } = useLanguage()
   const router = useRouter()
+  const { enableCart } = useStoreFeatures()
 
   // Simple translation helper
   const t = (key: string) => {
@@ -214,7 +216,7 @@ export default function CustomSection({ section }: CustomSectionProps) {
             <p className="text-lg font-bold text-primary mt-1">{product.price} IQD</p>
           </div>
           <Button size="sm">
-            {t('addToCart')}
+            {enableCart !== false ? t('addToCart') : t('viewAll')}
           </Button>
         </motion.div>
       ))}

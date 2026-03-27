@@ -25,6 +25,7 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { buildAssetUrl } from '@/lib/apiUrl'
 import { useFavorites } from '@/contexts/FavoritesContext'
 import RelatedProducts from './RelatedProducts'
+import { useStoreFeatures } from '@/contexts/StoreFeaturesContext'
 
 const translations = {
   en: {
@@ -77,6 +78,7 @@ export default function ProductProfile({ product }: ProductProfileProps) {
   const [showCopiedToast, setShowCopiedToast] = useState(false)
   const { addToCart } = useCart()
   const { addToFavorites, removeFromFavorites, isFavorite } = useFavorites()
+  const { enableCart } = useStoreFeatures()
   const pid = (product?._id || product?.id || (product as any)?.productId || '') as string
   const isFav = pid ? isFavorite(pid) : false
 
@@ -349,6 +351,7 @@ export default function ProductProfile({ product }: ProductProfileProps) {
 
               {/* Action Buttons */}
               <div className="flex gap-3">
+                {enableCart !== false && (
                 <Button
                   onClick={handleAddToCart}
                   disabled={isAddingToCart}
@@ -366,6 +369,7 @@ export default function ProductProfile({ product }: ProductProfileProps) {
                     </>
                   )}
                 </Button>
+                )}
                 <Button
                   onClick={handleToggleFavorite}
                   variant="outline"

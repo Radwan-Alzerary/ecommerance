@@ -159,6 +159,12 @@ export default function Header({ initialData }: HeaderProps) {
   const [hasSetInitialLanguage, setHasSetInitialLanguage] = useState(false)
   const [isClientMounted, setIsClientMounted] = useState(false)
 
+  // Feature toggles from store settings
+  const enableCart = initialSettings?.features?.enableCart !== false
+  const enableCheckout = initialSettings?.features?.enableCheckout !== false
+  const enableAccountCreation = initialSettings?.features?.enableAccountCreation !== false
+  const enableSignIn = initialSettings?.features?.enableSignIn !== false
+
   useEffect(() => {
     setIsClientMounted(true)
   }, [])
@@ -777,6 +783,7 @@ export default function Header({ initialData }: HeaderProps) {
               </Link>
 
               {/* User Menu */}
+              {(isAuthenticated || enableSignIn || enableAccountCreation) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -832,22 +839,28 @@ export default function Header({ initialData }: HeaderProps) {
                         <Zap className="w-8 h-8 mx-auto mb-2 text-blue-500" />
                         <span className="font-semibold">Join {storeName}</span>
                       </DropdownMenuLabel>
+                      {enableSignIn && (
                       <DropdownMenuItem className="rounded-xl mx-1">
                         <Link href="/signin" className="w-full text-center bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 rounded-xl font-medium">
                           {t('signIn')}
                         </Link>
                       </DropdownMenuItem>
+                      )}
+                      {enableAccountCreation && (
                       <DropdownMenuItem className="rounded-xl mx-1">
                         <Link href="/signup" className="w-full text-center py-2">
                           Create Account
                         </Link>
                       </DropdownMenuItem>
+                      )}
                     </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
+              )}
 
               {/* Enhanced Cart */}
+              {enableCart && (
               <div className="relative">
                 <Button
                   variant="ghost"
@@ -884,6 +897,7 @@ export default function Header({ initialData }: HeaderProps) {
                   )}
                 </AnimatePresence>
               </div>
+              )}
             </div>
           </div>
         </div>
@@ -996,6 +1010,7 @@ export default function Header({ initialData }: HeaderProps) {
                 <div className="mt-8 space-y-3">
                   {!isAuthenticated ? (
                     <>
+                      {enableSignIn && (
                       <Link
                         href="/signin"
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -1005,6 +1020,8 @@ export default function Header({ initialData }: HeaderProps) {
                           {t('signIn')}
                         </Button>
                       </Link>
+                      )}
+                      {enableAccountCreation && (
                       <Link
                         href="/signup"
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -1014,6 +1031,7 @@ export default function Header({ initialData }: HeaderProps) {
                           Create Account
                         </Button>
                       </Link>
+                      )}
                     </>
                   ) : (
                     <Button

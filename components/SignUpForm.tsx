@@ -30,6 +30,7 @@ import {
 import { signUpUser, getStoreSettingsPublic, type StoreSettingsPublic } from '@/lib/api'
 import type { CheckedState } from '@radix-ui/react-checkbox'
 import React from 'react'
+import { useStoreFeatures } from '@/contexts/StoreFeaturesContext'
 
 const PasswordStrength = ({ password }: { password: string }) => {
   const getStrength = (pass: string) => {
@@ -88,6 +89,7 @@ const SuccessCelebration = () => (
 )
 
 export function SignUpForm() {
+  const { enableAccountCreation } = useStoreFeatures();
   const [name, setName] = useState('')
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -104,6 +106,17 @@ export function SignUpForm() {
 
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // Redirect if account creation is disabled
+  useEffect(() => {
+    if (enableAccountCreation === false) {
+      router.replace('/');
+    }
+  }, [enableAccountCreation, router]);
+
+  if (enableAccountCreation === false) {
+    return null;
+  }
 
   useEffect(() => {
     getStoreSettingsPublic('ar')

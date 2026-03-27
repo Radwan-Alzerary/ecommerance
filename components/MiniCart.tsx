@@ -11,6 +11,7 @@ import { translations, TranslationKey } from '../utils/translations'
 import { CartItem } from '../types'
 import { buildAssetUrl } from '@/lib/apiUrl'
 import { useState } from 'react'
+import { useStoreFeatures } from '@/contexts/StoreFeaturesContext'
 
 interface MiniCartProps {
   onClose?: () => void
@@ -213,6 +214,7 @@ const EmptyCart = ({ onClose, t, language }: { onClose: any; t: any; language: s
 export default function MiniCart({ onClose }: MiniCartProps) {
   const { cart, removeFromCart, updateQuantity } = useCart()
   const { language } = useLanguage()
+  const { enableCheckout } = useStoreFeatures()
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const [isClosing, setIsClosing] = useState(false)
 
@@ -351,6 +353,7 @@ export default function MiniCart({ onClose }: MiniCartProps) {
 
             {/* Action Buttons */}
             <div className="space-y-3">
+              {enableCheckout !== false && (
               <Button 
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-2xl h-12 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group" 
                 asChild
@@ -361,6 +364,7 @@ export default function MiniCart({ onClose }: MiniCartProps) {
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
+              )}
               
               <Button 
                 variant="outline" 

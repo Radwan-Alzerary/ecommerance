@@ -581,11 +581,19 @@ export interface StoreSettingsFull {
     aboutUs: Bilingual
     seo: { metaTitle: Bilingual; metaDescription: Bilingual; keywords: string[] }
     display: { showStrengths: boolean; showSocialMedia: boolean; showAboutUs: boolean; strengthsLayout: 'grid'|'list'|'carousel' }
+    features?: StoreFeatures
     isActive: boolean
     logoUrl?: string | null
     version: number
     createdAt: string
     updatedAt: string
+}
+
+export interface StoreFeatures {
+    enableCart?: boolean
+    enableCheckout?: boolean
+    enableAccountCreation?: boolean
+    enableSignIn?: boolean
 }
 
 export interface StoreSettingsPublic {
@@ -595,6 +603,7 @@ export interface StoreSettingsPublic {
     aboutUs?: string
     seo?: { metaTitle?: string; metaDescription?: string; keywords?: string[] }
     logo: { type: 'text'|'text-circle'|'image'|'image-text'; textColor: string; imageUrl?: string }
+    features?: StoreFeatures
 }
 
 export interface WebsiteOffersConfig {

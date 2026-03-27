@@ -7,6 +7,7 @@ import Footer from '@/components/Footer'
 import { getStoreSettingsServerSide, getCategoriesServerSide } from '@/lib/server-api'
 import { getApiUrlAsync } from '@/lib/apiUrl'
 import { headers } from 'next/headers'
+import { StoreFeaturesProvider } from '@/contexts/StoreFeaturesContext'
 
 const cairo = Cairo({ subsets: ['latin', 'arabic'] })
 
@@ -95,6 +96,7 @@ export default async function RootLayout({
       <body className={`${cairo.className} antialiased bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 overflow-x-hidden`}>
         <AuthProvider>
           <Providers>
+            <StoreFeaturesProvider features={storeSettingsAr?.features || storeSettingsEn?.features}>
             <div className="flex flex-col min-h-screen w-full">
               <Header initialData={initialData} />
               <main className="flex-grow w-full">
@@ -102,6 +104,7 @@ export default async function RootLayout({
               </main>
               <Footer />
             </div>
+            </StoreFeaturesProvider>
           </Providers>
         </AuthProvider>
       </body>

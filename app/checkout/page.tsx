@@ -45,6 +45,7 @@ import Link from 'next/link'
 import { submitOrder, CreateOrderPayload } from '@/lib/api'
 import { CartItem } from '@/types'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useStoreFeatures } from '@/contexts/StoreFeaturesContext'
 
 type CountryData = {
   country: string
@@ -141,6 +142,18 @@ export default function CheckoutPage() {
   const { cart, clearCart } = useCart()
   const { user, isAuthenticated, isLoading: authIsLoading, error: authError } = useAuth()
   const router = useRouter();
+  const { enableCheckout, enableCart } = useStoreFeatures();
+
+  // Redirect if checkout or cart is disabled
+  useEffect(() => {
+    if (enableCheckout === false || enableCart === false) {
+      router.replace('/');
+    }
+  }, [enableCheckout, enableCart, router]);
+
+  if (enableCheckout === false || enableCart === false) {
+    return null;
+  }
 
   const [shippingInfo, setShippingInfo] = useState({
     name: '',

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import { signInUser } from '@/lib/api'
 import { signInWithGoogle, signInWithFacebook } from '@/lib/auth'
+import { useStoreFeatures } from '@/contexts/StoreFeaturesContext'
 
 // Floating decoration component
 const FloatingElement = ({ delay = 0, children, className = '' }: { delay?: number; children: React.ReactNode; className?: string }) => (
@@ -90,6 +91,7 @@ const LoginSuccessAnimation = () => (
 )
 
 export default function SignInPage() {
+  const { enableSignIn } = useStoreFeatures();
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [rememberMe, setRememberMe] = useState(false)
@@ -102,6 +104,17 @@ export default function SignInPage() {
   
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // Redirect if sign-in is disabled
+  useEffect(() => {
+    if (enableSignIn === false) {
+      router.replace('/');
+    }
+  }, [enableSignIn, router]);
+
+  if (enableSignIn === false) {
+    return null;
+  }
 
   // Real-time validation
   useEffect(() => {
